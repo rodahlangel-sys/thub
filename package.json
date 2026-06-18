@@ -3,15 +3,36 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "prisma generate && next dev",
+    "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "check:duplicate-bookings": "tsx scripts/check-duplicate-bookings.ts",
+    "check:tutor-verification": "tsx scripts/check-tutor-verification-consistency.ts",
+    "repair:tutor-verification": "tsx scripts/check-tutor-verification-consistency.ts",
+    "check:critical-business-rules": "tsx scripts/check-critical-business-rules.ts",
+    "check:settlement-consistency": "tsx scripts/check-settlement-consistency.ts",
+    "check:data-consistency": "tsx scripts/check-data-consistency.ts",
+    "check:duplicate-notifications": "tsx scripts/check-duplicate-notifications.ts",
+    "repair:duplicate-notifications": "tsx scripts/repair-duplicate-notifications.ts",
+    "repair:settlement-history": "tsx scripts/check-settlement-consistency.ts",
+    "test:settlements": "tsx --test src/lib/settlements.test.ts",
+    "test:unit": "tsx --test src/lib/*.test.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.2.3",
+    "lucide-react": "^1.17.0",
     "next": "16.2.7",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -20,7 +41,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
+    "prisma": "^6.19.3",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }

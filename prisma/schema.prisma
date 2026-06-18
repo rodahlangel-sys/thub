@@ -1,0 +1,346 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PARENT
+  TUTOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum CertificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TutorDocumentType {
+  STUDENT_CARD
+  ENROLLMENT_PROOF
+  CERTIFICATE
+  OTHER
+}
+
+enum TutorDocumentStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum DemandStatus {
+  OPEN
+  MATCHED
+  CLOSED
+}
+
+enum OrderStatus {
+  PENDING_TUTOR_CONFIRM
+  PENDING_PAYMENT
+  ESCROWED
+  IN_PROGRESS
+  PENDING_PARENT_CONFIRM
+  COMPLETED
+  REFUND_REQUESTED
+  REFUNDED
+  CANCELLED
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SettlementStatus {
+  PENDING
+  SETTLED
+  FAILED
+  REVERSED
+}
+
+enum SettlementProvider {
+  MOCK
+}
+
+enum TeachMode {
+  ONLINE
+  OFFLINE
+  BOTH
+}
+
+model User {
+  id                String     @id @default(cuid())
+  email             String     @unique
+  passwordHash      String
+  role              UserRole
+  name              String
+  phone             String
+  status            UserStatus @default(ACTIVE)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  termsAcceptedAt   DateTime?
+  privacyAcceptedAt DateTime?
+
+  parentProfile          ParentProfile?
+  tutorProfile           TutorProfile?
+  demands                Demand[]                    @relation("ParentDemands")
+  parentOrders           Order[]                     @relation("ParentOrders")
+  tutorOrders            Order[]                     @relation("TutorOrders")
+  refundRequests         Refund[]                    @relation("RefundApplicants")
+  lessonFeedbacks        LessonFeedback[]            @relation("TutorLessonFeedbacks")
+  parentReviews          Review[]                    @relation("ParentReviews")
+  tutorReviews           Review[]                    @relation("TutorReviews")
+  tutorSettlements       Settlement[]                @relation("TutorSettlements")
+  notifications          Notification[]
+  reviewedTutorDocuments TutorVerificationDocument[] @relation("ReviewedTutorDocuments")
+}
+
+model ParentProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  area          String
+  addressDetail String
+  childInfo     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TutorProfile {
+  id                  String              @id @default(cuid())
+  userId              String              @unique
+  school              String
+  major               String
+  grade               String
+  gender              String
+  subjects            String
+  teachLevels         String
+  areas               String
+  teachMode           TeachMode
+  availableTimes      String
+  priceMin            Int
+  priceMax            Int
+  introduction        String
+  experience          String
+  certificationStatus CertificationStatus @default(PENDING)
+  certificationNote   String?
+  rating              Float               @default(0)
+  orderCount          Int                 @default(0)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  user                  User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verificationDocuments TutorVerificationDocument[]
+}
+
+model TutorVerificationDocument {
+  id              String              @id @default(cuid())
+  tutorProfileId  String
+  type            TutorDocumentType
+  storageKey      String              @unique
+  originalName    String
+  mimeType        String
+  sizeBytes       Int
+  status          TutorDocumentStatus @default(DRAFT)
+  rejectionReason String?
+  reviewedAt      DateTime?
+  reviewedById    String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  tutorProfile TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
+  reviewedBy   User?        @relation("ReviewedTutorDocuments", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([tutorProfileId])
+  @@index([type])
+  @@index([status])
+  @@index([reviewedById])
+}
+
+model Demand {
+  id           String       @id @default(cuid())
+  parentId     String
+  childGrade   String
+  subject      String
+  goal         String
+  area         String
+  teachMode    TeachMode
+  expectedTime String
+  budgetMin    Int
+  budgetMax    Int
+  description  String
+  status       DemandStatus @default(OPEN)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  parent User    @relation("ParentDemands", fields: [parentId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@index([parentId])
+  @@index([status])
+}
+
+model Order {
+  id                   String      @id @default(cuid())
+  parentId             String
+  tutorId              String
+  demandId             String?
+  subject              String
+  scheduledTime        DateTime
+  teachMode            TeachMode
+  location             String
+  hours                Float
+  hourlyPrice          Int
+  totalAmount          Int
+  serviceFee           Int
+  platformFeeRateBps   Int         @default(500)
+  platformFeeAmountFen Int         @default(0)
+  tutorNetAmountFen    Int         @default(0)
+  status               OrderStatus @default(PENDING_TUTOR_CONFIRM)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  parent         User            @relation("ParentOrders", fields: [parentId], references: [id], onDelete: Cascade)
+  tutor          User            @relation("TutorOrders", fields: [tutorId], references: [id], onDelete: Cascade)
+  demand         Demand?         @relation(fields: [demandId], references: [id], onDelete: SetNull)
+  payment        Payment?
+  refunds        Refund[]
+  lessonFeedback LessonFeedback?
+  review         Review?
+  settlement     Settlement?
+
+  @@unique([demandId, tutorId])
+  @@index([parentId])
+  @@index([tutorId])
+  @@index([demandId])
+  @@index([status])
+}
+
+model Settlement {
+  id                   String             @id @default(cuid())
+  orderId              String             @unique
+  tutorId              String
+  provider             SettlementProvider @default(MOCK)
+  status               SettlementStatus   @default(PENDING)
+  grossAmountFen       Int
+  platformFeeRateBps   Int
+  platformFeeAmountFen Int
+  tutorNetAmountFen    Int
+  transactionNo        String?            @unique
+  settledAt            DateTime?
+  failureReason        String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tutor User  @relation("TutorSettlements", fields: [tutorId], references: [id], onDelete: Restrict)
+
+  @@index([tutorId])
+  @@index([status])
+  @@index([settledAt])
+}
+
+model Payment {
+  id            String    @id @default(cuid())
+  orderId       String    @unique
+  amount        Int
+  provider      String    @default("MOCK")
+  status        String    @default("UNPAID")
+  transactionNo String?
+  paidAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Refund {
+  id                  String       @id @default(cuid())
+  orderId             String
+  applicantId         String
+  reason              String
+  description         String
+  refundAmount        Int
+  previousOrderStatus OrderStatus?
+  status              RefundStatus @default(PENDING)
+  adminNote           String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  applicant User  @relation("RefundApplicants", fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([applicantId])
+  @@index([status])
+}
+
+model LessonFeedback {
+  id                 String   @id @default(cuid())
+  orderId            String   @unique
+  tutorId            String
+  content            String
+  studentPerformance String
+  problems           String
+  nextSuggestion     String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tutor User  @relation("TutorLessonFeedbacks", fields: [tutorId], references: [id], onDelete: Cascade)
+
+  @@index([tutorId])
+}
+
+model Review {
+  id                 String   @id @default(cuid())
+  orderId            String   @unique
+  parentId           String
+  tutorId            String
+  scorePunctuality   Int
+  scoreClarity       Int
+  scoreCommunication Int
+  scoreAcceptance    Int
+  overallScore       Float
+  comment            String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  order  Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  parent User  @relation("ParentReviews", fields: [parentId], references: [id], onDelete: Cascade)
+  tutor  User  @relation("TutorReviews", fields: [tutorId], references: [id], onDelete: Cascade)
+
+  @@index([parentId])
+  @@index([tutorId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  title     String
+  content   String
+  type      String    @default("SYSTEM")
+  link      String?
+  dedupeKey String?   @unique
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([readAt])
+  @@index([createdAt])
+}
