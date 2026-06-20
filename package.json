@@ -18,8 +18,12 @@
     "check:duplicate-notifications": "tsx scripts/check-duplicate-notifications.ts",
     "repair:duplicate-notifications": "tsx scripts/repair-duplicate-notifications.ts",
     "repair:settlement-history": "tsx scripts/check-settlement-consistency.ts",
+    "check:mysql-migration-readiness": "tsx scripts/check-mysql-migration-readiness.ts",
+    "check:mysql-migration-result": "tsx scripts/check-mysql-migration-result.ts",
+    "migrate:mysql:dry-run": "tsx scripts/migrate-sqlite-to-mysql.ts",
+    "migrate:mysql:apply": "tsx scripts/migrate-sqlite-to-mysql.ts --apply",
     "test:settlements": "tsx --test src/lib/settlements.test.ts",
-    "test:unit": "tsx --test src/lib/*.test.ts"
+    "test:unit": "tsx --test src/lib/*.test.ts scripts/mysql-migration-*.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -41,6 +45,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
+    "mysql2": "^3.22.5",
     "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
