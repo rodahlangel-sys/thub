@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "prisma generate && next dev",
-    "build": "prisma generate && next build",
+    "dev": "prisma generate --schema prisma/schema.prisma && next dev",
+    "dev:mysql": "tsx scripts/mysql-runtime-launcher.ts dev",
+    "build": "prisma generate --schema prisma/schema.prisma && next build",
+    "build:mysql": "tsx scripts/mysql-runtime-launcher.ts build",
     "start": "next start",
     "lint": "eslint",
-    "prisma:generate": "prisma generate",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:generate:sqlite": "prisma generate --schema prisma/schema.prisma",
+    "prisma:generate:mysql": "tsx scripts/mysql-runtime-launcher.ts generate",
     "prisma:migrate": "prisma migrate dev",
     "check:duplicate-bookings": "tsx scripts/check-duplicate-bookings.ts",
     "check:tutor-verification": "tsx scripts/check-tutor-verification-consistency.ts",
@@ -20,10 +24,16 @@
     "repair:settlement-history": "tsx scripts/check-settlement-consistency.ts",
     "check:mysql-migration-readiness": "tsx scripts/check-mysql-migration-readiness.ts",
     "check:mysql-migration-result": "tsx scripts/check-mysql-migration-result.ts",
+    "check:mysql-runtime-reads": "tsx scripts/mysql-runtime-launcher.ts check",
+    "mysql:e2e:prepare": "tsx scripts/mysql-e2e-fixture.ts prepare",
+    "mysql:e2e:cleanup": "tsx scripts/mysql-e2e-fixture.ts cleanup",
+    "mysql:e2e:inspect": "tsx scripts/mysql-e2e-fixture.ts inspect",
+    "mysql:e2e:normalize-emails": "tsx scripts/mysql-e2e-fixture.ts normalize-emails",
+    "mysql:e2e:run": "tsx scripts/mysql-three-role-regression.ts",
     "migrate:mysql:dry-run": "tsx scripts/migrate-sqlite-to-mysql.ts",
     "migrate:mysql:apply": "tsx scripts/migrate-sqlite-to-mysql.ts --apply",
     "test:settlements": "tsx --test src/lib/settlements.test.ts",
-    "test:unit": "tsx --test src/lib/*.test.ts scripts/mysql-migration-*.test.ts"
+    "test:unit": "tsx --test src/lib/*.test.ts scripts/mysql-*.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
