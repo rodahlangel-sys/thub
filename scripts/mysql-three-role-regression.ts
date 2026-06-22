@@ -53,9 +53,29 @@ class HttpSession {
           .filter(Boolean)
           .map((entry) => [entry.slice(0, entry.indexOf("=")), entry]),
       );
-      current.set(name, pair);
+      if (/Max-Age=0/i.test(item)) {
+        current.delete(name);
+      } else {
+        current.set(name, pair);
+      }
       this.cookie = Array.from(current.values()).join("; ");
     }
+  }
+
+  private sessionCookieAttributes(response: Response) {
+    const headers = response.headers as Headers & { getSetCookie?: () => string[] };
+    const item = (headers.getSetCookie?.() ?? []).find((value) =>
+      value.startsWith("wuhan_tutor_session="),
+    );
+    if (!item) return null;
+    return {
+      httpOnly: /(?:^|;)\s*HttpOnly/i.test(item),
+      secure: /(?:^|;)\s*Secure/i.test(item),
+      sameSiteLax: /SameSite=Lax/i.test(item),
+      pathRoot: /(?:^|;)\s*Path=\//i.test(item),
+      maxAgeZero: /Max-Age=0/i.test(item),
+      hasDomain: /(?:^|;)\s*Domain=/i.test(item),
+    };
   }
 
   async get(route: string, redirect: RequestRedirect = "follow") {
@@ -65,6 +85,17 @@ class HttpSession {
     });
     this.updateCookies(response);
     return response;
+  }
+
+  async post(route: string, redirect: RequestRedirect = "manual") {
+    const response = await fetch(`${baseUrl}${route}`, {
+      method: "POST",
+      headers: this.cookie ? { cookie: this.cookie } : undefined,
+      redirect,
+    });
+    const cookieAttributes = this.sessionCookieAttributes(response);
+    this.updateCookies(response);
+    return { response, cookieAttributes };
   }
 
   async postAction(
@@ -104,13 +135,54 @@ class HttpSession {
         referer: `${baseUrl}${route}`,
       },
     });
+    const cookieAttributes = this.sessionCookieAttributes(response);
     this.updateCookies(response);
     const location = response.headers.get("location") ?? "";
     if (location.includes("error=")) throw new Error(`SERVER_ACTION_ERROR:${route}`);
     if (![200, 303, 307].includes(response.status)) {
       throw new Error(`SERVER_ACTION_STATUS:${route}:${response.status}`);
     }
-    return { status: response.status, location, actionId };
+    return { status: response.status, location, actionId, cookieAttributes };
+  }
+}
+
+async function expectPages(session: HttpSession, routes: string[]) {
+  for (const route of routes) {
+    const response = await session.get(route, "manual");
+    if (response.status !== 200) {
+      throw new Error(`AUTHENTICATED_PAGE_FAILED:${route}:${response.status}`);
+    }
+  }
+}
+
+async function expectRoleRedirect(
+  session: HttpSession,
+  route: string,
+  dashboard: string,
+) {
+  const response = await session.get(route, "manual");
+  if (response.status !== 307 || response.headers.get("location") !== dashboard) {
+    throw new Error(`ROLE_ISOLATION_FAILED:${route}`);
+  }
+}
+
+function expectCreatedSessionCookie(
+  attributes: ReturnType<HttpSession["post"]> extends Promise<infer Result>
+    ? Result extends { cookieAttributes: infer CookieAttributes }
+      ? CookieAttributes
+      : never
+    : never,
+) {
+  if (
+    !attributes ||
+    !attributes.httpOnly ||
+    !attributes.secure ||
+    !attributes.sameSiteLax ||
+    !attributes.pathRoot ||
+    attributes.maxAgeZero ||
+    attributes.hasDomain
+  ) {
+    throw new Error("SESSION_COOKIE_ATTRIBUTES_INVALID");
   }
 }
 
@@ -178,6 +250,7 @@ async function main() {
       if (result.location !== (role === "PARENT" ? "/parent" : "/tutor")) {
         throw new Error("REGISTRATION_REDIRECT_INVALID");
       }
+      expectCreatedSessionCookie(result.cookieAttributes);
     };
     await register(parent, "PARENT", fixture.parentEmail);
     await register(tutor, "TUTOR", fixture.tutorEmail);
@@ -186,6 +259,35 @@ async function main() {
       password: fixture.password,
     });
     if (adminLogin.location !== "/admin") throw new Error("ADMIN_LOGIN_FAILED");
+    expectCreatedSessionCookie(adminLogin.cookieAttributes);
+
+    await expectPages(parent, [
+      "/parent",
+      "/parent/profile",
+      "/parent/demands",
+      "/parent/recommend",
+      "/parent/orders",
+    ]);
+    await expectPages(tutor, [
+      "/tutor",
+      "/tutor/profile",
+      "/tutor/orders",
+      "/tutor/reviews",
+    ]);
+    await expectPages(admin, [
+      "/admin",
+      "/admin/users",
+      "/admin/tutors",
+      "/admin/orders",
+      "/admin/payments",
+      "/admin/refunds",
+    ]);
+    await expectRoleRedirect(parent, "/tutor", "/parent");
+    await expectRoleRedirect(parent, "/admin", "/parent");
+    await expectRoleRedirect(tutor, "/parent", "/tutor");
+    await expectRoleRedirect(tutor, "/admin", "/tutor");
+    await expectRoleRedirect(admin, "/parent", "/admin");
+    await expectRoleRedirect(admin, "/tutor", "/admin");
 
     const parentUser = await one<RowDataPacket & { id: string }>(
       connection,
@@ -254,7 +356,7 @@ async function main() {
     if (document.status !== "SUBMITTED") throw new Error("DOCUMENT_NOT_SUBMITTED");
 
     const parentDocument = await parent.get(`/api/tutor-documents/${document.id}`, "manual");
-    if (parentDocument.status !== 404) throw new Error("DOCUMENT_PERMISSION_FAILED");
+    if (parentDocument.status !== 403) throw new Error("DOCUMENT_PERMISSION_FAILED");
     if (!(await tutor.get(`/api/tutor-documents/${document.id}`)).ok) {
       throw new Error("TUTOR_DOCUMENT_READ_FAILED");
     }
@@ -500,6 +602,42 @@ async function main() {
     );
     if (duplicateDedupeKeys !== 0) throw new Error("DUPLICATE_NOTIFICATION_KEY");
 
+    const prefetchedLogout = await parent.get("/logout", "manual");
+    if (prefetchedLogout.status !== 405 || prefetchedLogout.headers.has("set-cookie")) {
+      throw new Error("LOGOUT_GET_HAS_SIDE_EFFECTS");
+    }
+    await expectPages(parent, ["/parent/orders"]);
+
+    for (const [session, protectedRoute] of [
+      [parent, "/parent"],
+      [tutor, "/tutor"],
+      [admin, "/admin"],
+    ] as const) {
+      const { response, cookieAttributes } = await session.post("/logout");
+      const logoutLocation = new URL(
+        response.headers.get("location") ?? "",
+        baseUrl,
+      ).pathname;
+      if (
+        response.status !== 303 ||
+        logoutLocation !== "/login" ||
+        !cookieAttributes?.maxAgeZero ||
+        !cookieAttributes.pathRoot ||
+        !cookieAttributes.httpOnly ||
+        !cookieAttributes.sameSiteLax ||
+        cookieAttributes.hasDomain
+      ) {
+        throw new Error("LOGOUT_RESPONSE_INVALID");
+      }
+      const afterLogout = await session.get(protectedRoute, "manual");
+      if (
+        afterLogout.status !== 307 ||
+        afterLogout.headers.get("location") !== "/login"
+      ) {
+        throw new Error("LOGOUT_SESSION_STILL_ACTIVE");
+      }
+    }
+
     const total = await scalar(
       connection,
       `SELECT
@@ -521,6 +659,9 @@ async function main() {
         ok: true,
         registrations: 2,
         logins: 3,
+        authenticatedPages: 15,
+        roleIsolationChecks: 6,
+        logoutChecks: 3,
         proofUploadAndApproval: true,
         completeOrder: true,
         refundRejectionRestored: true,

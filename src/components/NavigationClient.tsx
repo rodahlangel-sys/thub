@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { Badge } from "@/components/Badge";
-import { ButtonLink } from "@/components/Button";
+import { buttonClassName } from "@/components/Button";
 import { Container } from "@/components/Container";
 import { ThubBrandMark } from "@/components/auth/ThubBrandMark";
 
@@ -131,9 +131,11 @@ export function NavigationClient({
             <Badge tone={isParent ? "blue" : isTutor ? "green" : "gray"}>
               {roleLabels[role]}
             </Badge>
-            <ButtonLink href="/logout" variant="outline">
-              退出登录
-            </ButtonLink>
+            <form action="/logout" method="post">
+              <button className={buttonClassName("outline")} type="submit">
+                退出登录
+              </button>
+            </form>
           </div>
         </nav>
       </Container>
