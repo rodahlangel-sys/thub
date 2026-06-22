@@ -18,13 +18,21 @@ function parseEnvValue(source: string, name: string) {
 
 export function createMysqlRuntimeEnvironment(
   base: NodeJS.ProcessEnv,
-  cloudbaseEnvFile: string,
-) {
-  const mysqlUrl = parseEnvValue(
-    cloudbaseEnvFile,
-    "CLOUDBASE_MYSQL_EXTERNAL_URL",
-  );
-  if (!mysqlUrl) throw new Error("CloudBase MySQL external URL is missing");
+  cloudbaseEnvFile?: string,
+): NodeJS.ProcessEnv & { DATABASE_URL: string } {
+  const production = base.NODE_ENV === "production";
+  const mysqlUrl = production
+    ? base.DATABASE_URL
+    : cloudbaseEnvFile
+      ? parseEnvValue(cloudbaseEnvFile, "CLOUDBASE_MYSQL_EXTERNAL_URL")
+      : undefined;
+  if (!mysqlUrl) {
+    throw new Error(
+      production
+        ? "Production DATABASE_URL is missing"
+        : "CloudBase MySQL external URL is missing",
+    );
+  }
 
   const parsed = new URL(mysqlUrl);
   if (parsed.protocol !== "mysql:") {
@@ -34,11 +42,12 @@ export function createMysqlRuntimeEnvironment(
     throw new Error("CloudBase MySQL target database is invalid");
   }
 
-  return {
+  const environment: NodeJS.ProcessEnv & { DATABASE_URL: string } = {
     ...base,
     DATABASE_URL: mysqlUrl,
-    CLOUDBASE_MYSQL_EXTERNAL_URL: mysqlUrl,
   };
+  if (!production) environment.CLOUDBASE_MYSQL_EXTERNAL_URL = mysqlUrl;
+  return environment;
 }
 
 export function parseMysqlRuntimeMode(args: string[]): { mode: MysqlRuntimeMode } {
@@ -79,8 +88,6 @@ export function createMysqlRuntimeCommands(
       args: [
         `${normalizedRoot}/node_modules/prisma/build/index.js`,
         "generate",
-        "--schema",
-        "prisma-mysql/schema.prisma",
       ],
     },
   ];

@@ -41,7 +41,7 @@ async function main() {
     const baselineSql = readFileSync(
       path.join(
         process.cwd(),
-        "prisma-mysql",
+        "prisma",
         "migrations",
         BASELINE_NAME,
         "migration.sql",

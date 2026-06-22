@@ -11,6 +11,16 @@ export type ServerEnv = {
   privateFileStorageRoot: string;
 };
 
+export function getDatabaseUrl(input: ServerEnvInput) {
+  const databaseUrl = required(input, "DATABASE_URL");
+  const production = input.NODE_ENV?.trim() === "production";
+  const explicitSqliteRollback = input.THUB_SQLITE_ROLLBACK === "1";
+  if (production && databaseUrl.startsWith("file:") && !explicitSqliteRollback) {
+    throw new Error("SQLite DATABASE_URL is not allowed in production");
+  }
+  return databaseUrl;
+}
+
 function required(input: ServerEnvInput, name: string) {
   const value = input[name]?.trim();
 
@@ -49,9 +59,11 @@ export function parseServerEnv(input: ServerEnvInput): ServerEnv {
     throw new Error("PRIVATE_FILE_STORAGE_ROOT 必须是绝对路径");
   }
 
+  const databaseUrl = getDatabaseUrl(input);
+
   return {
     authSecret: required(input, "AUTH_SECRET"),
-    databaseUrl: required(input, "DATABASE_URL"),
+    databaseUrl,
     privateFileStorageDriver: driverValue,
     privateFileStorageRoot: storageRoot,
   };

@@ -39,6 +39,28 @@ test("rejects missing, non-MySQL and wrong-database runtime URLs", () => {
   );
 });
 
+test("production uses only the platform DATABASE_URL", () => {
+  const url = "mysql://app:test@example.invalid:3306/thub_test";
+  const environment = createMysqlRuntimeEnvironment(
+    { NODE_ENV: "production", DATABASE_URL: url },
+  );
+
+  assert.equal(environment.DATABASE_URL, url);
+  assert.equal(environment.CLOUDBASE_MYSQL_EXTERNAL_URL, undefined);
+  assert.throws(
+    () =>
+      createMysqlRuntimeEnvironment({
+        NODE_ENV: "production",
+        DATABASE_URL: "file:./dev.db",
+      }),
+    /protocol/i,
+  );
+  assert.throws(
+    () => createMysqlRuntimeEnvironment({ NODE_ENV: "production" }),
+    /missing/i,
+  );
+});
+
 test("supports only generate, build, check and dev runtime modes", () => {
   assert.deepEqual(parseMysqlRuntimeMode(["generate"]), { mode: "generate" });
   assert.deepEqual(parseMysqlRuntimeMode(["build"]), { mode: "build" });
@@ -74,11 +96,9 @@ test("uses the current Node executable instead of Windows command shims", () => 
     {
       command: "C:/node/node.exe",
       args: [
-        "C:/workspace/node_modules/prisma/build/index.js",
-        "generate",
-        "--schema",
-        "prisma-mysql/schema.prisma",
-      ],
+      "C:/workspace/node_modules/prisma/build/index.js",
+      "generate",
+    ],
     },
     {
       command: "C:/node/node.exe",

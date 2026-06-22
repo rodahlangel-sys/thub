@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import {
@@ -25,10 +25,10 @@ function run(command: string, args: string[], environment: NodeJS.ProcessEnv) {
 
 async function main() {
   const { mode } = parseMysqlRuntimeMode(process.argv.slice(2));
-  const cloudbaseEnv = readFileSync(
-    path.join(process.cwd(), ".env.cloudbase.local"),
-    "utf8",
-  );
+  const cloudbaseEnvPath = path.join(process.cwd(), ".env.cloudbase.local");
+  const cloudbaseEnv = existsSync(cloudbaseEnvPath)
+    ? readFileSync(cloudbaseEnvPath, "utf8")
+    : undefined;
   const environment = createMysqlRuntimeEnvironment(process.env, cloudbaseEnv);
   const commands = createMysqlRuntimeCommands(process.cwd(), process.execPath, mode);
 
@@ -41,7 +41,7 @@ async function main() {
     return;
   }
 
-  console.log("Preparing the isolated CloudBase MySQL Prisma Client.");
+  console.log("Preparing the default MySQL Prisma Client.");
   let exitCode = await run(commands[0].command, commands[0].args, environment);
   if (exitCode !== 0 || mode === "generate") {
     process.exitCode = exitCode;
@@ -51,7 +51,7 @@ async function main() {
   if (mode === "build") {
     exitCode = await run(commands[1].command, commands[1].args, environment);
   } else {
-    console.log("Starting the local read-only MySQL validation server.");
+    console.log("Starting the default MySQL development server.");
     exitCode = await run(
       commands[1].command,
       commands[1].args,

@@ -21,6 +21,32 @@ test("production rejects ephemeral local private file storage", () => {
   );
 });
 
+test("production rejects a SQLite database URL", () => {
+  assert.throws(
+    () =>
+      parseServerEnv({
+        ...baseEnv,
+        NODE_ENV: "production",
+        PRIVATE_FILE_STORAGE_DRIVER: "PERSISTENT_FILESYSTEM",
+        PRIVATE_FILE_STORAGE_ROOT: "C:/private-files",
+      }),
+    /SQLite.*production/i,
+  );
+});
+
+test("production requires an explicit database URL", () => {
+  assert.throws(
+    () =>
+      parseServerEnv({
+        AUTH_SECRET: "test-secret",
+        NODE_ENV: "production",
+        PRIVATE_FILE_STORAGE_DRIVER: "PERSISTENT_FILESYSTEM",
+        PRIVATE_FILE_STORAGE_ROOT: "C:/private-files",
+      }),
+    /DATABASE_URL/,
+  );
+});
+
 test("unsupported private file storage drivers fail closed", () => {
   assert.throws(
     () => parseServerEnv({ ...baseEnv, NODE_ENV: "development", PRIVATE_FILE_STORAGE_DRIVER: "S3" }),

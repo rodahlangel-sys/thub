@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -81,11 +81,11 @@ enum TeachMode {
 
 model User {
   id                String     @id @default(cuid())
-  email             String     @unique
-  passwordHash      String
+  email             String     @unique @db.VarChar(320)
+  passwordHash      String     @db.VarChar(255)
   role              UserRole
-  name              String
-  phone             String
+  name              String     @db.VarChar(191)
+  phone             String     @db.VarChar(32)
   status            UserStatus @default(ACTIVE)
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
@@ -109,9 +109,9 @@ model User {
 model ParentProfile {
   id            String   @id @default(cuid())
   userId        String   @unique
-  area          String
-  addressDetail String
-  childInfo     String
+  area          String   @db.VarChar(191)
+  addressDetail String   @db.Text
+  childInfo     String   @db.Text
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -121,21 +121,21 @@ model ParentProfile {
 model TutorProfile {
   id                  String              @id @default(cuid())
   userId              String              @unique
-  school              String
-  major               String
-  grade               String
-  gender              String
-  subjects            String
-  teachLevels         String
-  areas               String
+  school              String              @db.VarChar(191)
+  major               String              @db.VarChar(191)
+  grade               String              @db.VarChar(64)
+  gender              String              @db.VarChar(32)
+  subjects            String              @db.Text
+  teachLevels         String              @db.Text
+  areas               String              @db.Text
   teachMode           TeachMode
-  availableTimes      String
+  availableTimes      String              @db.Text
   priceMin            Int
   priceMax            Int
-  introduction        String
-  experience          String
+  introduction        String              @db.Text
+  experience          String              @db.Text
   certificationStatus CertificationStatus @default(PENDING)
-  certificationNote   String?
+  certificationNote   String?             @db.Text
   rating              Float               @default(0)
   orderCount          Int                 @default(0)
   createdAt           DateTime            @default(now())
@@ -149,12 +149,12 @@ model TutorVerificationDocument {
   id              String              @id @default(cuid())
   tutorProfileId  String
   type            TutorDocumentType
-  storageKey      String              @unique
-  originalName    String
-  mimeType        String
+  storageKey      String              @unique @db.VarChar(512)
+  originalName    String              @db.VarChar(255)
+  mimeType        String              @db.VarChar(191)
   sizeBytes       Int
   status          TutorDocumentStatus @default(DRAFT)
-  rejectionReason String?
+  rejectionReason String?             @db.Text
   reviewedAt      DateTime?
   reviewedById    String?
   createdAt       DateTime            @default(now())
@@ -172,15 +172,15 @@ model TutorVerificationDocument {
 model Demand {
   id           String       @id @default(cuid())
   parentId     String
-  childGrade   String
-  subject      String
-  goal         String
-  area         String
+  childGrade   String       @db.VarChar(64)
+  subject      String       @db.VarChar(191)
+  goal         String       @db.Text
+  area         String       @db.VarChar(191)
   teachMode    TeachMode
-  expectedTime String
+  expectedTime String       @db.Text
   budgetMin    Int
   budgetMax    Int
-  description  String
+  description  String       @db.Text
   status       DemandStatus @default(OPEN)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
@@ -197,10 +197,10 @@ model Order {
   parentId             String
   tutorId              String
   demandId             String?
-  subject              String
+  subject              String      @db.VarChar(191)
   scheduledTime        DateTime
   teachMode            TeachMode
-  location             String
+  location             String      @db.Text
   hours                Float
   hourlyPrice          Int
   totalAmount          Int
@@ -238,9 +238,9 @@ model Settlement {
   platformFeeRateBps   Int
   platformFeeAmountFen Int
   tutorNetAmountFen    Int
-  transactionNo        String?            @unique
+  transactionNo        String?            @unique @db.VarChar(255)
   settledAt            DateTime?
-  failureReason        String?
+  failureReason        String?            @db.Text
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
@@ -256,9 +256,9 @@ model Payment {
   id            String    @id @default(cuid())
   orderId       String    @unique
   amount        Int
-  provider      String    @default("MOCK")
-  status        String    @default("UNPAID")
-  transactionNo String?
+  provider      String    @default("MOCK") @db.VarChar(64)
+  status        String    @default("UNPAID") @db.VarChar(64)
+  transactionNo String?   @db.VarChar(255)
   paidAt        DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -270,12 +270,12 @@ model Refund {
   id                  String       @id @default(cuid())
   orderId             String
   applicantId         String
-  reason              String
-  description         String
+  reason              String       @db.VarChar(191)
+  description         String       @db.Text
   refundAmount        Int
   previousOrderStatus OrderStatus?
   status              RefundStatus @default(PENDING)
-  adminNote           String?
+  adminNote           String?      @db.Text
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
@@ -291,10 +291,10 @@ model LessonFeedback {
   id                 String   @id @default(cuid())
   orderId            String   @unique
   tutorId            String
-  content            String
-  studentPerformance String
-  problems           String
-  nextSuggestion     String
+  content            String   @db.Text
+  studentPerformance String   @db.Text
+  problems           String   @db.Text
+  nextSuggestion     String   @db.Text
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -314,7 +314,7 @@ model Review {
   scoreCommunication Int
   scoreAcceptance    Int
   overallScore       Float
-  comment            String
+  comment            String   @db.Text
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -329,11 +329,11 @@ model Review {
 model Notification {
   id        String    @id @default(cuid())
   userId    String
-  title     String
-  content   String
-  type      String    @default("SYSTEM")
-  link      String?
-  dedupeKey String?   @unique
+  title     String    @db.VarChar(255)
+  content   String    @db.Text
+  type      String    @default("SYSTEM") @db.VarChar(64)
+  link      String?   @db.Text
+  dedupeKey String?   @unique @db.VarChar(512)
   readAt    DateTime?
   createdAt DateTime  @default(now())
 

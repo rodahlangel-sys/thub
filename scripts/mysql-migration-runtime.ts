@@ -52,7 +52,7 @@ export function loadMigrationEnvironment(root = process.cwd()) {
   }
 
   return {
-    sqliteUrl,
+    sqliteUrl: `file:${path.join(root, "prisma", "dev.db").replaceAll("\\", "/")}`,
     mysqlUrl,
     sqlitePath: path.join(root, "prisma", "dev.db"),
   };

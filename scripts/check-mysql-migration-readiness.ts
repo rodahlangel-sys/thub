@@ -29,11 +29,11 @@ async function main() {
     const target = await inspectMysqlTarget(mysql);
     const targetEvaluation = evaluateTargetState(target.state);
     const sqliteSchema = readFileSync(
-      path.join(process.cwd(), "prisma", "schema.prisma"),
+      path.join(process.cwd(), "prisma-sqlite", "schema.prisma"),
       "utf8",
     );
     const mysqlSchema = readFileSync(
-      path.join(process.cwd(), "prisma-mysql", "schema.prisma"),
+      path.join(process.cwd(), "prisma", "schema.prisma"),
       "utf8",
     );
     const modelsMatch = schemasHaveSameModels(sqliteSchema, mysqlSchema);
