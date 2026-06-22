@@ -3,12 +3,25 @@ import {
   TutorDocumentStatus,
   TutorDocumentType,
 } from "@prisma/client";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import {
   hasBlockingConsistencyIssues,
   type DataConsistencyReport,
 } from "../src/lib/data-consistency";
+import { createMysqlRuntimeEnvironment } from "./mysql-runtime-launcher-core";
 
-const prisma = new PrismaClient();
+const cloudbaseEnvPath = path.join(process.cwd(), ".env.cloudbase.local");
+const cloudbaseEnv = existsSync(cloudbaseEnvPath)
+  ? readFileSync(cloudbaseEnvPath, "utf8")
+  : undefined;
+const runtimeEnvironment = createMysqlRuntimeEnvironment(
+  process.env,
+  cloudbaseEnv,
+);
+const prisma = new PrismaClient({
+  datasourceUrl: runtimeEnvironment.DATABASE_URL,
+});
 const schoolProofTypes = new Set<TutorDocumentType>([
   TutorDocumentType.STUDENT_CARD,
   TutorDocumentType.ENROLLMENT_PROOF,

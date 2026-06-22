@@ -6,6 +6,7 @@ export type StoredFile = {
 export type SavePrivateFileInput = {
   buffer: Buffer;
   extension: "jpg" | "jpeg" | "png" | "webp";
+  tutorProfileId: string;
 };
 
 export type PrivateFileStorage = {

@@ -1,5 +1,7 @@
 import { getServerEnv } from "@/lib/env";
 import { createLocalPrivateFileStorage } from "./local-storage";
+import { createCloudBasePrivateFileStorageFromEnvironment } from "./cloudbase-storage";
+import { createPrivateFileStorageRouter } from "./router";
 import type { PrivateFileStorage } from "./types";
 
 let configuredStorage: PrivateFileStorage | null = null;
@@ -7,7 +9,26 @@ let configuredStorage: PrivateFileStorage | null = null;
 function getPrivateFileStorage() {
   if (!configuredStorage) {
     const env = getServerEnv();
-    configuredStorage = createLocalPrivateFileStorage(env.privateFileStorageRoot);
+    const local = createLocalPrivateFileStorage(env.privateFileStorageRoot);
+    let cloudStorage: PrivateFileStorage | null = null;
+    const getCloudStorage = () => {
+      cloudStorage ??= createCloudBasePrivateFileStorageFromEnvironment({
+        envId: env.cloudbaseEnvId,
+        region: env.cloudbaseRegion,
+      });
+      return cloudStorage;
+    };
+    const cloud: PrivateFileStorage = {
+      save: (input) => getCloudStorage().save(input),
+      read: (storageKey) => getCloudStorage().read(storageKey),
+      delete: (storageKey) => getCloudStorage().delete(storageKey),
+      exists: (storageKey) => getCloudStorage().exists(storageKey),
+    };
+    configuredStorage = createPrivateFileStorageRouter({
+      activeProvider: env.storageProvider,
+      local,
+      cloud,
+    });
   }
 
   return configuredStorage;

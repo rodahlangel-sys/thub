@@ -34,10 +34,12 @@
     "mysql:e2e:run": "tsx scripts/mysql-three-role-regression.ts",
     "migrate:mysql:dry-run": "tsx scripts/migrate-sqlite-to-mysql.ts",
     "migrate:mysql:apply": "tsx scripts/migrate-sqlite-to-mysql.ts --apply",
+    "migrate:verification-storage": "tsx scripts/migrate-verification-files-to-cloudbase.ts",
     "test:settlements": "tsx --test src/lib/settlements.test.ts",
-    "test:unit": "tsx --test src/lib/*.test.ts scripts/mysql-*.test.ts scripts/sqlite-*.test.ts"
+    "test:unit": "tsx --test src/lib/*.test.ts src/lib/storage/*.test.ts scripts/mysql-*.test.ts scripts/sqlite-*.test.ts scripts/cloudbase-*.test.ts"
   },
   "dependencies": {
+    "@cloudbase/node-sdk": "^3.18.3",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.3",
@@ -45,6 +47,7 @@
     "next": "16.2.7",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "ws": "^8.21.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

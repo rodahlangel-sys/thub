@@ -14,6 +14,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { buildNotificationDedupeKey, safelyNotifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { privateFileStorage } from "@/lib/storage";
+import { persistTutorDocumentUpload } from "@/lib/tutor-document-upload";
 import {
   canEditTutorDocuments,
   documentFileExists,
@@ -137,67 +138,65 @@ export async function uploadTutorDocumentAction(formData: FormData) {
     profileRedirect("error", "其他能力证明最多上传5张。");
   }
 
-  let newStorageKey: string | null = null;
+  const documentsToRemove = replaceDocument
+    ? [replaceDocument]
+    : isSchoolProofType
+      ? profile.verificationDocuments.filter((document) =>
+          isSchoolProofDocument(document),
+        )
+      : [];
 
   try {
-    newStorageKey = await privateFileStorage.save({
-      buffer: file.buffer,
-      extension: file.extension,
-    });
+    await persistTutorDocumentUpload({
+      storage: privateFileStorage,
+      input: {
+        buffer: file.buffer,
+        extension: file.extension,
+        tutorProfileId: profile.id,
+      },
+      oldStorageKeys: documentsToRemove.map((document) => document.storageKey),
+      commit: async (newStorageKey) => {
+        await prisma.$transaction(async (tx) => {
+          if (documentsToRemove.length > 0) {
+            await tx.tutorVerificationDocument.deleteMany({
+              where: {
+                id: { in: documentsToRemove.map((document) => document.id) },
+                tutorProfileId: profile.id,
+              },
+            });
+          }
 
-    const documentsToRemove = replaceDocument
-      ? [replaceDocument]
-      : isSchoolProofType
-        ? profile.verificationDocuments.filter((document) =>
-            isSchoolProofDocument(document),
-          )
-        : [];
+          if (!isSchoolProofType && !replaceDocument) {
+            const optionalDocumentCount = await tx.tutorVerificationDocument.count({
+              where: {
+                tutorProfileId: profile.id,
+                type: { notIn: schoolProofTypes },
+              },
+            });
 
-    await prisma.$transaction(async (tx) => {
-      if (documentsToRemove.length > 0) {
-        await tx.tutorVerificationDocument.deleteMany({
-          where: {
-            id: { in: documentsToRemove.map((document) => document.id) },
-            tutorProfileId: profile.id,
-          },
+            if (optionalDocumentCount >= MAX_OPTIONAL_TUTOR_DOCUMENTS) {
+              throw new Error("TOO_MANY_OPTIONAL_DOCUMENTS");
+            }
+          }
+
+          await tx.tutorVerificationDocument.create({
+            data: {
+              tutorProfileId: profile.id,
+              type: typeResult.data,
+              storageKey: newStorageKey,
+              originalName: file.originalName,
+              mimeType: file.mimeType,
+              sizeBytes: file.sizeBytes,
+              status: TutorDocumentStatus.DRAFT,
+            },
+          });
         });
-      }
-
-      if (!isSchoolProofType && !replaceDocument) {
-        const optionalDocumentCount = await tx.tutorVerificationDocument.count({
-          where: {
-            tutorProfileId: profile.id,
-            type: { notIn: schoolProofTypes },
-          },
-        });
-
-        if (optionalDocumentCount >= MAX_OPTIONAL_TUTOR_DOCUMENTS) {
-          throw new Error("TOO_MANY_OPTIONAL_DOCUMENTS");
-        }
-      }
-
-      await tx.tutorVerificationDocument.create({
-        data: {
-          tutorProfileId: profile.id,
-          type: typeResult.data,
-          storageKey: newStorageKey!,
-          originalName: file.originalName,
-          mimeType: file.mimeType,
-          sizeBytes: file.sizeBytes,
-          status: TutorDocumentStatus.DRAFT,
-        },
-      });
-
+      },
+      onCleanupError: () => {
+        console.error("Failed to clean up replaced tutor verification file");
+      },
     });
-
-    for (const document of documentsToRemove) {
-      await privateFileStorage.delete(document.storageKey);
-    }
   } catch (error) {
-    if (newStorageKey) {
-      await privateFileStorage.delete(newStorageKey);
-    }
-
     console.error("Failed to upload tutor verification document", error);
     if (error instanceof Error && error.message === "TOO_MANY_OPTIONAL_DOCUMENTS") {
       profileRedirect("error", "其他能力证明最多上传5张。");
