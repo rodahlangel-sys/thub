@@ -18,6 +18,7 @@ import {
 } from "@/lib/parent-display";
 import { getDashboardPath, getTeachModeLabel } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
+import { startConversationAction } from "@/app/messages/actions";
 
 type DemandRecommendPageProps = {
   params: Promise<{ id: string }>;
@@ -210,6 +211,16 @@ export default async function DemandRecommendPage({
                   <ButtonLink href={`/tutors/${result.tutor.id}`} variant="outline">
                     查看资料
                   </ButtonLink>
+                  <form action={startConversationAction}>
+                    <input name="demandId" type="hidden" value={demand.id} />
+                    <input name="tutorProfileId" type="hidden" value={result.tutor.id} />
+                    <button
+                      className="inline-flex h-10 w-full items-center justify-center rounded-md border border-[#c7d5d2] bg-white px-4 text-sm font-semibold text-[#244b5b] transition hover:border-[#116a6c] hover:bg-[#f7fbfa] focus:outline-none focus:ring-2 focus:ring-[#b8dcd8] focus:ring-offset-2"
+                      type="submit"
+                    >
+                      联系家教
+                    </button>
+                  </form>
                 </div>
               </div>
             </Card>

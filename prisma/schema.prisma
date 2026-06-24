@@ -79,6 +79,11 @@ enum TeachMode {
   BOTH
 }
 
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+}
+
 model User {
   id                String     @id @default(cuid())
   email             String     @unique @db.VarChar(320)
@@ -104,6 +109,9 @@ model User {
   tutorSettlements       Settlement[]                @relation("TutorSettlements")
   notifications          Notification[]
   reviewedTutorDocuments TutorVerificationDocument[] @relation("ReviewedTutorDocuments")
+  parentConversations    Conversation[]              @relation("ParentConversations")
+  tutorConversations     Conversation[]              @relation("TutorConversations")
+  sentMessages           Message[]                   @relation("SentMessages")
 }
 
 model ParentProfile {
@@ -187,6 +195,7 @@ model Demand {
 
   parent User    @relation("ParentDemands", fields: [parentId], references: [id], onDelete: Cascade)
   orders Order[]
+  conversations Conversation[]
 
   @@index([parentId])
   @@index([status])
@@ -220,6 +229,7 @@ model Order {
   lessonFeedback LessonFeedback?
   review         Review?
   settlement     Settlement?
+  conversations  Conversation[]
 
   @@unique([demandId, tutorId])
   @@index([parentId])
@@ -343,4 +353,43 @@ model Notification {
   @@index([type])
   @@index([readAt])
   @@index([createdAt])
+}
+
+model Conversation {
+  id            String             @id @default(cuid())
+  parentUserId  String
+  tutorUserId   String
+  demandId      String
+  orderId       String?
+  status        ConversationStatus @default(ACTIVE)
+  lastMessageAt DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  parent   User      @relation("ParentConversations", fields: [parentUserId], references: [id], onDelete: Cascade)
+  tutor    User      @relation("TutorConversations", fields: [tutorUserId], references: [id], onDelete: Cascade)
+  demand   Demand    @relation(fields: [demandId], references: [id], onDelete: Cascade)
+  order    Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  messages Message[]
+
+  @@unique([parentUserId, tutorUserId, demandId])
+  @@index([parentUserId])
+  @@index([tutorUserId])
+  @@index([demandId])
+  @@index([orderId])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderUserId   String
+  content        String   @db.Text
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("SentMessages", fields: [senderUserId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderUserId])
 }

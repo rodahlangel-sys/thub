@@ -70,17 +70,6 @@ export function ThubLoginCard({ error }: ThubLoginCardProps) {
           立即注册
         </Link>
       </p>
-
-      <details className="group mt-5 rounded-xl border border-[#e1ece9] bg-[#f8fbfa] px-4 py-3 text-sm text-[#6b7f7b]">
-        <summary className="cursor-pointer list-none text-center font-medium text-[#55706d] outline-none transition hover:text-[#117b7a] focus-visible:ring-2 focus-visible:ring-[#b9deda]">
-          查看体验账号
-        </summary>
-        <div className="mt-3 space-y-1.5 border-t border-[#e1ece9] pt-3 text-xs leading-5">
-          <p>管理员：admin@example.com / admin123456</p>
-          <p>家长：parent1@example.com / 123456</p>
-          <p>大学生家教：tutor1@example.com / 123456</p>
-        </div>
-      </details>
     </section>
   );
 }

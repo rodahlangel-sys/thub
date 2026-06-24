@@ -9,6 +9,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { startConversationAction } from "@/app/messages/actions";
 import {
   getCertificationStatusLabel,
   getDashboardPath,
@@ -58,6 +59,23 @@ export default async function TutorDetailPage({ params }: TutorDetailPageProps) 
   if (!tutor || tutor.certificationStatus !== "APPROVED") {
     notFound();
   }
+
+  const parentDemands =
+    user?.role === "PARENT"
+      ? await prisma.demand.findMany({
+          where: {
+            parentId: user.id,
+            status: "OPEN",
+          },
+          orderBy: { createdAt: "desc" },
+          take: 3,
+          select: {
+            id: true,
+            childGrade: true,
+            subject: true,
+          },
+        })
+      : [];
 
   const actionHref = user
     ? user.role === "PARENT"
@@ -207,6 +225,38 @@ export default async function TutorDetailPage({ params }: TutorDetailPageProps) 
         </div>
         <ButtonLink href={actionHref}>{actionText}</ButtonLink>
       </SectionCard>
+
+      {user?.role === "PARENT" ? (
+        <SectionCard className="mt-6 p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[#116a6c]">站内沟通</p>
+              <h2 className="mt-1 text-xl font-bold text-[#1f2d2d]">联系这位家教</h2>
+              <p className="mt-2 text-sm leading-6 text-[#66736e]">
+                会话需要关联一条需求，便于双方围绕具体辅导目标沟通。
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              {parentDemands.length > 0 ? (
+                parentDemands.map((demand) => (
+                  <form action={startConversationAction} key={demand.id}>
+                    <input name="demandId" type="hidden" value={demand.id} />
+                    <input name="tutorProfileId" type="hidden" value={tutor.id} />
+                    <button
+                      className="inline-flex h-10 items-center justify-center rounded-md bg-[#116a6c] px-4 text-sm font-semibold text-white transition hover:bg-[#0d5759] focus:outline-none focus:ring-2 focus:ring-[#b8dcd8] focus:ring-offset-2"
+                      type="submit"
+                    >
+                      联系：{demand.childGrade} {demand.subject}
+                    </button>
+                  </form>
+                ))
+              ) : (
+                <ButtonLink href="/parent/demands/new">先发布需求</ButtonLink>
+              )}
+            </div>
+          </div>
+        </SectionCard>
+      ) : null}
     </PageShell>
   );
 }

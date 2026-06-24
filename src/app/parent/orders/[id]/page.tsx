@@ -23,6 +23,7 @@ import {
 } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { cancelParentOrderAction, confirmParentOrderCompletedAction } from "./actions";
+import { startOrderConversationAction } from "@/app/messages/actions";
 
 type ParentOrderDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -183,6 +184,14 @@ export default async function ParentOrderDetailPage({
               <ButtonLink href={`/parent/orders/${order.id}/refund`} variant="outline">
                 申请退款
               </ButtonLink>
+            ) : null}
+            {order.demandId ? (
+              <form action={startOrderConversationAction}>
+                <input name="orderId" type="hidden" value={order.id} />
+                <Button type="submit" variant="outline">
+                  与家教沟通
+                </Button>
+              </form>
             ) : null}
           </div>
         </div>

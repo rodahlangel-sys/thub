@@ -873,13 +873,13 @@ export function evaluateBaselineHistory(
   expectedName: string,
   expectedChecksum: string,
 ) {
-  return (
-    history.length === 1 &&
-    history[0].migrationName === expectedName &&
-    history[0].checksum === expectedChecksum &&
-    history[0].finished &&
-    !history[0].rolledBack &&
-    history[0].appliedStepsCount === 0
+  return history.some(
+    (record) =>
+      record.migrationName === expectedName &&
+      record.checksum === expectedChecksum &&
+      record.finished &&
+      !record.rolledBack &&
+      record.appliedStepsCount === 0,
   );
 }
 

@@ -21,6 +21,7 @@ import {
   rejectTutorOrderAction,
   startTutorOrderAction,
 } from "./actions";
+import { startOrderConversationAction } from "@/app/messages/actions";
 
 type TutorOrderDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -202,6 +203,14 @@ export default async function TutorOrderDetailPage({ params }: TutorOrderDetailP
               <ButtonLink href={`/tutor/orders/${order.id}/feedback`}>
                 提交课后反馈
               </ButtonLink>
+            ) : null}
+            {order.demandId ? (
+              <form action={startOrderConversationAction}>
+                <input name="orderId" type="hidden" value={order.id} />
+                <Button type="submit" variant="outline">
+                  与家长沟通
+                </Button>
+              </form>
             ) : null}
             <ButtonLink href="/tutor/orders" variant="outline">
               返回预约管理

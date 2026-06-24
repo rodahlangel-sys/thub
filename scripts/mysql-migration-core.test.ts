@@ -438,7 +438,7 @@ test("compares migrated snapshots without exposing source values", () => {
   });
 });
 
-test("requires exactly one completed baseline migration with the expected checksum", () => {
+test("requires a completed baseline migration with the expected checksum", () => {
   const history = [{
     migrationName: "20260620_mysql_baseline",
     checksum: "expected-checksum",
@@ -456,6 +456,30 @@ test("requires exactly one completed baseline migration with the expected checks
   );
   assert.equal(
     evaluateBaselineHistory([...history, ...history], "20260620_mysql_baseline", "expected-checksum"),
-    false,
+    true,
+  );
+  assert.equal(
+    evaluateBaselineHistory(
+      [
+        ...history,
+        {
+          migrationName: "20260624090000_add_conversations",
+          checksum: "conversation-checksum",
+          finished: true,
+          rolledBack: false,
+          appliedStepsCount: 1,
+        },
+        {
+          migrationName: "20260624090000_add_conversations",
+          checksum: "failed-checksum",
+          finished: false,
+          rolledBack: true,
+          appliedStepsCount: 2,
+        },
+      ],
+      "20260620_mysql_baseline",
+      "expected-checksum",
+    ),
+    true,
   );
 });

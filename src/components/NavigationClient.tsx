@@ -39,12 +39,14 @@ const navConfig: Record<UserRole, NavItem[]> = {
     { href: "/parent", label: "家长首页", exact: true },
     { href: "/parent/demands", label: "我的需求", matchPrefixes: ["/parent/demands"] },
     { href: "/parent/orders", label: "我的订单", matchPrefixes: ["/parent/orders"] },
+    { href: "/messages", label: "消息", matchPrefixes: ["/messages"] },
   ],
   TUTOR: [
     { href: "/tutor", label: "服务首页", exact: true },
     { href: "/tutor/orders", label: "预约管理", matchPrefixes: ["/tutor/orders"] },
     { href: "/tutor/profile", label: "我的资料", matchPrefixes: ["/tutor/profile"] },
     { href: "/tutor/reviews", label: "服务评价", matchPrefixes: ["/tutor/reviews"] },
+    { href: "/messages", label: "消息", matchPrefixes: ["/messages"] },
   ],
   ADMIN: [{ href: "/admin", label: "运营后台", matchPrefixes: ["/admin"] }],
 };
@@ -84,9 +86,10 @@ export function NavigationClient({
   const navLinks = navConfig[role] ?? [
     { href: dashboardHref, label: dashboardLabels[role], exact: true },
   ];
-  const activeHref = pathname === "/notifications" || pathname.startsWith("/notifications/")
-    ? "/notifications"
-    : getActiveHref(pathname, navLinks);
+  const activeHref =
+    pathname === "/notifications" || pathname.startsWith("/notifications/")
+      ? "/notifications"
+      : getActiveHref(pathname, navLinks);
   const isParent = role === UserRole.PARENT;
   const isTutor = role === UserRole.TUTOR;
 
@@ -120,7 +123,7 @@ export function NavigationClient({
               className={`inline-flex items-center gap-1 ${getLinkClass(activeHref === "/notifications")}`}
               href="/notifications"
             >
-              消息
+              通知
               {unreadCount > 0 ? (
                 <span className="rounded-full bg-[#176b87] px-1.5 py-0.5 text-[11px] font-semibold text-white">
                   {unreadCount > 99 ? "99+" : unreadCount}

@@ -25,6 +25,33 @@ export function getDatabaseUrl(input: ServerEnvInput) {
   return databaseUrl;
 }
 
+export function getPrismaDatasourceUrl(input: ServerEnvInput) {
+  return withBoundedMysqlConnectionSettings(getDatabaseUrl(input));
+}
+
+function withBoundedMysqlConnectionSettings(databaseUrl: string) {
+  let parsed: URL;
+  try {
+    parsed = new URL(databaseUrl);
+  } catch {
+    return databaseUrl;
+  }
+
+  if (parsed.protocol !== "mysql:") return databaseUrl;
+
+  for (const [name, value] of [
+    ["connect_timeout", "5"],
+    ["pool_timeout", "5"],
+    ["connection_limit", "5"],
+  ] as const) {
+    if (!parsed.searchParams.has(name)) {
+      parsed.searchParams.set(name, value);
+    }
+  }
+
+  return parsed.toString();
+}
+
 function required(input: ServerEnvInput, name: string) {
   const value = input[name]?.trim();
 
