@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { init } from "@cloudbase/node-sdk";
+import cloudbase from "@cloudbase/node-sdk";
 import type {
   PrivateFileStorage,
+  PrivateFileStorageError as PrivateFileStorageErrorType,
   SavePrivateFileInput,
   StoredFile,
 } from "./types";
+import { PrivateFileStorageError } from "./types";
 
 const PROFILE_ID_PATTERN = /^[A-Za-z0-9_-]{1,191}$/;
 const CLOUD_PATH_PATTERN =
@@ -21,6 +23,19 @@ export type CloudBaseStorageClient = {
 function isNotFoundError(error: unknown) {
   const code = String((error as { code?: unknown })?.code ?? "");
   return /NOT.?EXIST|NON.?EXIST|NOT.?FOUND|NO.?SUCH/i.test(code);
+}
+
+function isMissingCredentialError(error: unknown) {
+  const code = String((error as { code?: unknown })?.code ?? "");
+  const message = String((error as { message?: unknown })?.message ?? "");
+  return (
+    /missing secretId or secretKey/i.test(message) &&
+    (!code || code === "INVALID_PARAM")
+  );
+}
+
+function storageError(code: PrivateFileStorageErrorType["code"]) {
+  return new PrivateFileStorageError(code);
 }
 
 export function buildCloudVerificationPath(
@@ -70,12 +85,19 @@ export function createCloudBasePrivateFileStorage(options: {
         input.extension,
         uuid,
       );
-      const result = await client.uploadFile({
-        cloudPath,
-        fileContent: input.buffer,
-      });
-      parseCloudStorageKey(result.fileID);
-      return result.fileID;
+      try {
+        const result = await client.uploadFile({
+          cloudPath,
+          fileContent: input.buffer,
+        });
+        parseCloudStorageKey(result.fileID);
+        return result.fileID;
+      } catch (error) {
+        if (isMissingCredentialError(error)) {
+          throw storageError("CLOUDBASE_CREDENTIALS_MISSING");
+        }
+        throw storageError("CLOUDBASE_UPLOAD_FAILED");
+      }
     },
 
     async read(storageKey): Promise<StoredFile | null> {
@@ -89,7 +111,10 @@ export function createCloudBasePrivateFileStorage(options: {
         return { key: storageKey, buffer };
       } catch (error) {
         if (isNotFoundError(error)) return null;
-        throw new Error("CloudBase private file read failed");
+        if (isMissingCredentialError(error)) {
+          throw storageError("CLOUDBASE_CREDENTIALS_MISSING");
+        }
+        throw storageError("CLOUDBASE_READ_FAILED");
       }
     },
 
@@ -103,7 +128,10 @@ export function createCloudBasePrivateFileStorage(options: {
         }
       } catch (error) {
         if (!isNotFoundError(error)) {
-          throw new Error("CloudBase private file delete failed");
+          if (isMissingCredentialError(error)) {
+            throw storageError("CLOUDBASE_CREDENTIALS_MISSING");
+          }
+          throw storageError("CLOUDBASE_DELETE_FAILED");
         }
       }
     },
@@ -117,7 +145,12 @@ export function createCloudBasePrivateFileStorage(options: {
 export function createCloudBasePrivateFileStorageFromEnvironment(options: {
   envId: string;
   region: string;
+  accessKey?: string;
 }) {
-  const app = init({ env: options.envId, region: options.region });
+  const app = cloudbase.init({
+    env: options.envId,
+    region: options.region,
+    ...(options.accessKey ? { accessKey: options.accessKey } : {}),
+  });
   return createCloudBasePrivateFileStorage({ client: app });
 }

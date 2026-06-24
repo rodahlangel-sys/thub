@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
   CertificationStatus,
+  Prisma,
   TeachMode,
   TutorDocumentStatus,
   TutorDocumentType,
@@ -13,7 +14,7 @@ import { getDashboardPath } from "@/lib/roles";
 import { getCurrentUser } from "@/lib/auth";
 import { buildNotificationDedupeKey, safelyNotifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
-import { privateFileStorage } from "@/lib/storage";
+import { isPrivateFileStorageError, privateFileStorage } from "@/lib/storage";
 import { persistTutorDocumentUpload } from "@/lib/tutor-document-upload";
 import {
   canEditTutorDocuments,
@@ -198,6 +199,21 @@ export async function uploadTutorDocumentAction(formData: FormData) {
     });
   } catch (error) {
     console.error("Failed to upload tutor verification document", error);
+    if (isPrivateFileStorageError(error)) {
+      if (error.code === "CLOUDBASE_CREDENTIALS_MISSING") {
+        profileRedirect(
+          "error",
+          "云存储暂时不可用，请联系管理员检查运行环境授权。",
+        );
+      }
+      profileRedirect("error", "云存储上传失败，请稍后重试。");
+    }
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      profileRedirect("error", "该材料已经上传，请刷新页面后再试。");
+    }
     if (error instanceof Error && error.message === "TOO_MANY_OPTIONAL_DOCUMENTS") {
       profileRedirect("error", "其他能力证明最多上传5张。");
     }

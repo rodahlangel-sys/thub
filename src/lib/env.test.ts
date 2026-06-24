@@ -109,3 +109,15 @@ test("production CloudBase storage requires environment identity", () => {
     /CLOUDBASE_ENV_ID/,
   );
 });
+
+test("CloudBase storage accepts an injected API key without exposing it", () => {
+  const env = parseServerEnv({
+    ...baseEnv,
+    DATABASE_URL: "mysql://example.invalid/thub_test",
+    NODE_ENV: "production",
+    CLOUDBASE_ENV_ID: "thub-test-example",
+    CLOUDBASE_REGION: "ap-shanghai",
+    CLOUDBASE_APIKEY: "test-api-key",
+  });
+  assert.equal(env.cloudbaseApiKey, "test-api-key");
+});

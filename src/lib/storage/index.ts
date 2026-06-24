@@ -15,6 +15,7 @@ function getPrivateFileStorage() {
       cloudStorage ??= createCloudBasePrivateFileStorageFromEnvironment({
         envId: env.cloudbaseEnvId,
         region: env.cloudbaseRegion,
+        accessKey: env.cloudbaseApiKey,
       });
       return cloudStorage;
     };
@@ -46,3 +47,4 @@ export type {
   SavePrivateFileInput,
   StoredFile,
 } from "./types";
+export { isPrivateFileStorageError, PrivateFileStorageError } from "./types";

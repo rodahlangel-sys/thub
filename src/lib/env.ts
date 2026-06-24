@@ -13,6 +13,7 @@ export type ServerEnv = {
   storageProvider: StorageProvider;
   cloudbaseEnvId: string;
   cloudbaseRegion: string;
+  cloudbaseApiKey: string;
 };
 
 export function getDatabaseUrl(input: ServerEnvInput) {
@@ -120,6 +121,7 @@ export function parseServerEnv(input: ServerEnvInput): ServerEnv {
   const databaseUrl = getDatabaseUrl(input);
   const cloudbaseEnvId = input.CLOUDBASE_ENV_ID?.trim() || "";
   const cloudbaseRegion = input.CLOUDBASE_REGION?.trim() || "";
+  const cloudbaseApiKey = input.CLOUDBASE_APIKEY?.trim() || "";
   if (storageProviderValue === "CLOUDBASE") {
     if (!cloudbaseEnvId) throw new Error("Missing CLOUDBASE_ENV_ID environment variable");
     if (!cloudbaseRegion) throw new Error("Missing CLOUDBASE_REGION environment variable");
@@ -133,6 +135,7 @@ export function parseServerEnv(input: ServerEnvInput): ServerEnv {
     storageProvider: storageProviderValue,
     cloudbaseEnvId,
     cloudbaseRegion,
+    cloudbaseApiKey,
   };
 }
 

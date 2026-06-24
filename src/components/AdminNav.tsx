@@ -11,6 +11,7 @@ const adminLinks = [
   { href: "/admin/refunds", label: "退款管理" },
   { href: "/admin/reviews", label: "评价管理" },
   { href: "/admin/feedbacks", label: "课后反馈" },
+  { href: "/admin/support", label: "客服消息" },
 ];
 
 export function AdminNav() {

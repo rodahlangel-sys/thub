@@ -23,10 +23,16 @@ import {
 
 const BASELINE_NAME = "20260620_mysql_baseline";
 const CONVERSATION_MIGRATION_NAME = "20260624090000_add_conversations";
-const EMPTY_CHAT_TABLES = ["Conversation", "Message"] as const;
+const SUPPORT_MIGRATION_NAME = "20260624110000_add_support_conversations";
+const EMPTY_RUNTIME_TABLES = [
+  "Conversation",
+  "Message",
+  "SupportConversation",
+  "SupportMessage",
+] as const;
 
-function isEmptyChatTable(name: string): name is (typeof EMPTY_CHAT_TABLES)[number] {
-  return EMPTY_CHAT_TABLES.includes(name as (typeof EMPTY_CHAT_TABLES)[number]);
+function isEmptyRuntimeTable(name: string): name is (typeof EMPTY_RUNTIME_TABLES)[number] {
+  return EMPTY_RUNTIME_TABLES.includes(name as (typeof EMPTY_RUNTIME_TABLES)[number]);
 }
 
 async function main() {
@@ -66,9 +72,15 @@ async function main() {
         record.finished &&
         !record.rolledBack,
     );
-    const chatTableCounts = Object.fromEntries(
+    const supportMigrationCorrect = migrationHistory.some(
+      (record) =>
+        record.migrationName === SUPPORT_MIGRATION_NAME &&
+        record.finished &&
+        !record.rolledBack,
+    );
+    const runtimeTableCounts = Object.fromEntries(
       await Promise.all(
-        EMPTY_CHAT_TABLES.map(async (table) => {
+        EMPTY_RUNTIME_TABLES.map(async (table) => {
           const [[count]] = await mysql.query<Array<RowDataPacket & { row_count: number }>>(
             `SELECT COUNT(*) AS row_count FROM \`${table}\``,
           );
@@ -76,25 +88,26 @@ async function main() {
         }),
       ),
     );
-    const chatTablesReady = EMPTY_CHAT_TABLES.every(
+    const runtimeTablesReady = EMPTY_RUNTIME_TABLES.every(
       (table) =>
         mysqlTarget.state.tableNames.includes(table) &&
-        chatTableCounts[table] === 0,
+        runtimeTableCounts[table] === 0,
     );
     const sourceHashAfter = hashFile(environment.sqlitePath);
     const historicalTableNames = mysqlTarget.state.tableNames.filter(
-      (name) => name !== "_prisma_migrations" && !isEmptyChatTable(name),
+      (name) => name !== "_prisma_migrations" && !isEmptyRuntimeTable(name),
     );
     const ready =
       mysqlTarget.state.currentDatabase === "thub_test" &&
       mysqlTarget.state.defaultDatabaseTableCount === 0 &&
       historicalTableNames.length === MIGRATION_TABLES.length &&
-      chatTablesReady &&
+      runtimeTablesReady &&
       sourceAudit.safeToMigrate &&
       targetAudit.safeToMigrate &&
       comparison.matches &&
       baselineHistoryCorrect &&
       conversationMigrationCorrect &&
+      supportMigrationCorrect &&
       sourceHashBefore === sourceHashAfter;
 
     console.log(
@@ -107,7 +120,7 @@ async function main() {
             currentDatabase: mysqlTarget.state.currentDatabase,
             defaultDatabaseTableCount: mysqlTarget.state.defaultDatabaseTableCount,
             businessTableCount: MIGRATION_TABLES.length,
-            chatTableCounts,
+            runtimeTableCounts,
           },
           baseline: {
             recordCount: migrationHistory.length,
@@ -115,6 +128,9 @@ async function main() {
           },
           conversationMigration: {
             correct: conversationMigrationCorrect,
+          },
+          supportMigration: {
+            correct: supportMigrationCorrect,
           },
           comparison,
           sourceAudit: formatDryRunReport(sourceAudit),

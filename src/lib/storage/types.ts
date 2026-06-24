@@ -15,3 +15,38 @@ export type PrivateFileStorage = {
   delete(storageKey: string): Promise<void>;
   exists(storageKey: string): Promise<boolean>;
 };
+
+export class PrivateFileStorageError extends Error {
+  constructor(
+    public readonly code:
+      | "CLOUDBASE_CREDENTIALS_MISSING"
+      | "CLOUDBASE_UPLOAD_FAILED"
+      | "CLOUDBASE_READ_FAILED"
+      | "CLOUDBASE_DELETE_FAILED",
+    message = code,
+  ) {
+    super(message);
+    this.name = "PrivateFileStorageError";
+  }
+}
+
+const privateFileStorageErrorCodes = new Set([
+  "CLOUDBASE_CREDENTIALS_MISSING",
+  "CLOUDBASE_UPLOAD_FAILED",
+  "CLOUDBASE_READ_FAILED",
+  "CLOUDBASE_DELETE_FAILED",
+]);
+
+export function isPrivateFileStorageError(
+  error: unknown,
+): error is PrivateFileStorageError {
+  return (
+    error instanceof PrivateFileStorageError ||
+    (
+      typeof error === "object" &&
+      error !== null &&
+      (error as { name?: unknown }).name === "PrivateFileStorageError" &&
+      privateFileStorageErrorCodes.has(String((error as { code?: unknown }).code))
+    )
+  );
+}

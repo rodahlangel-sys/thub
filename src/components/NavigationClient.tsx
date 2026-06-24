@@ -40,6 +40,7 @@ const navConfig: Record<UserRole, NavItem[]> = {
     { href: "/parent/demands", label: "我的需求", matchPrefixes: ["/parent/demands"] },
     { href: "/parent/orders", label: "我的订单", matchPrefixes: ["/parent/orders"] },
     { href: "/messages", label: "消息", matchPrefixes: ["/messages"] },
+    { href: "/support", label: "联系客服", matchPrefixes: ["/support"] },
   ],
   TUTOR: [
     { href: "/tutor", label: "服务首页", exact: true },
@@ -47,6 +48,7 @@ const navConfig: Record<UserRole, NavItem[]> = {
     { href: "/tutor/profile", label: "我的资料", matchPrefixes: ["/tutor/profile"] },
     { href: "/tutor/reviews", label: "服务评价", matchPrefixes: ["/tutor/reviews"] },
     { href: "/messages", label: "消息", matchPrefixes: ["/messages"] },
+    { href: "/support", label: "联系客服", matchPrefixes: ["/support"] },
   ],
   ADMIN: [{ href: "/admin", label: "运营后台", matchPrefixes: ["/admin"] }],
 };

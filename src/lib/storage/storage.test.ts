@@ -11,6 +11,7 @@ import {
 } from "./cloudbase-storage";
 import { createPrivateFileStorageRouter } from "./router";
 import { createLocalPrivateFileStorage } from "./local-storage";
+import { PrivateFileStorageError } from "./types";
 
 test("LOCAL provider still saves, reads, checks, and deletes files", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "thub-storage-"));
@@ -90,6 +91,40 @@ test("CloudBase provider implements save, read, exists, and delete", async () =>
   );
   await storage.delete(key);
   assert.deepEqual(deleted, [key]);
+});
+
+test("CloudBase provider reports missing runtime credentials without database side effects", async () => {
+  const client: CloudBaseStorageClient = {
+    async uploadFile() {
+      throw Object.assign(
+        new Error(
+          "missing secretId or secretKey of tencent cloud, please set secretId and secretKey in config",
+        ),
+        { code: "INVALID_PARAM" },
+      );
+    },
+    async downloadFile() {
+      throw new Error("unused");
+    },
+    async deleteFile() {
+      throw new Error("unused");
+    },
+  };
+  const storage = createCloudBasePrivateFileStorage({
+    client,
+    uuid: () => "uuid-456",
+  });
+  await assert.rejects(
+    () =>
+      storage.save({
+        buffer: Buffer.from("upload"),
+        extension: "png",
+        tutorProfileId: "profile_123",
+      }),
+    (error) =>
+      error instanceof PrivateFileStorageError &&
+      error.code === "CLOUDBASE_CREDENTIALS_MISSING",
+  );
 });
 
 test("storage router resolves local and cloud keys without duplicating authorization", async () => {
