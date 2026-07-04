@@ -21,11 +21,41 @@ export function createMysqlRuntimeEnvironment(
   cloudbaseEnvFile?: string,
 ): NodeJS.ProcessEnv & { DATABASE_URL: string } {
   const production = base.NODE_ENV === "production";
+
+  // 检测 Netlify / CI 环境(用于错误消息)
+  const isNetlifyOrCi = base.NETLIFY === "true" || base.CI === "true";
+
+  // 检测 CloudBase Runtime 配置是否可用(.env.cloudbase.local 中存在 CLOUDBASE_MYSQL_EXTERNAL_URL)
+  // 优先级:CloudBase Runtime 配置存在 > Netlify/CI 环境
+  // 这样 CloudBase Run / 本地开发(有 .env.cloudbase.local)的行为完全不变,
+  // 即使本地 VS Code 等工具设置了 CI=true 也不会误触发 fallback 分支。
+  const cloudbaseExternalUrl = cloudbaseEnvFile
+    ? parseEnvValue(cloudbaseEnvFile, "CLOUDBASE_MYSQL_EXTERNAL_URL")
+    : undefined;
+  const hasCloudBaseRuntime = Boolean(cloudbaseExternalUrl);
+
+  // CloudBase Runtime 配置不存在(如 Netlify):直接使用 DATABASE_URL,不读 CloudBase Runtime 配置
+  if (!hasCloudBaseRuntime) {
+    if (!base.DATABASE_URL) {
+      throw new Error(
+        isNetlifyOrCi
+          ? "DATABASE_URL is required for Netlify/CI builds"
+          : production
+            ? "Production DATABASE_URL is missing"
+            : "DATABASE_URL is missing and CloudBase Runtime is not configured",
+      );
+    }
+    // production 环境不允许 SQLite(保留业务规则)
+    if (production && !base.DATABASE_URL.startsWith("mysql:")) {
+      throw new Error("Production DATABASE_URL protocol is invalid");
+    }
+    return { ...base, DATABASE_URL: base.DATABASE_URL };
+  }
+
+  // CloudBase Runtime 分支(原有逻辑,行为完全不变)
   const mysqlUrl = production
     ? base.DATABASE_URL
-    : cloudbaseEnvFile
-      ? parseEnvValue(cloudbaseEnvFile, "CLOUDBASE_MYSQL_EXTERNAL_URL")
-      : undefined;
+    : cloudbaseExternalUrl;
   if (!mysqlUrl) {
     throw new Error(
       production
