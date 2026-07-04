@@ -20,6 +20,9 @@ export function getRefundUnavailableReason(status: OrderStatus) {
   const reasons: Record<OrderStatus, string> = {
     PENDING_TUTOR_CONFIRM: "老师还没有确认接单，可以取消订单，不需要申请退款。",
     PENDING_PAYMENT: "订单尚未支付，可以取消订单，不需要申请支付退款。",
+    WAIT_PLATFORM_CONFIRM: "扫码支付正在确认平台信息服务费，暂不能申请退款。",
+    WAIT_TUTOR_PAYMENT: "扫码支付正在进行中，请先完成或取消当前支付流程。",
+    WAIT_TUTOR_CONFIRM: "扫码支付正在确认家教服务费，暂不能申请退款。",
     ESCROWED: "",
     IN_PROGRESS: "",
     PENDING_PARENT_CONFIRM: "",

@@ -34,6 +34,9 @@ export function getOrderStatusDescription(status: OrderStatus) {
   const descriptions: Record<OrderStatus, string> = {
     PENDING_TUTOR_CONFIRM: "订单已提交，等待老师确认是否接单。",
     PENDING_PAYMENT: "老师已确认接单，等待家长完成支付。",
+    WAIT_PLATFORM_CONFIRM: "家长已标记支付平台信息服务费，等待管理员确认收款。",
+    WAIT_TUTOR_PAYMENT: "平台信息服务费已确认，等待家长向家教支付服务费。",
+    WAIT_TUTOR_CONFIRM: "家长已标记支付家教服务费，等待家教确认收款。",
     ESCROWED: "家长已完成担保支付，等待开始服务。",
     IN_PROGRESS: "家教服务正在进行中。",
     PENDING_PARENT_CONFIRM: "服务已结束，等待家长确认。",

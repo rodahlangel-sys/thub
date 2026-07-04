@@ -9,8 +9,9 @@ import type {
 import { PrivateFileStorageError } from "./types";
 
 const PROFILE_ID_PATTERN = /^[A-Za-z0-9_-]{1,191}$/;
+const PAYMENT_QR_OWNER_ID_PATTERN = /^[A-Za-z0-9_-]{1,191}$/;
 const CLOUD_PATH_PATTERN =
-  /^private\/tutor-verification\/([A-Za-z0-9_-]{1,191})\/([A-Za-z0-9_-]+)\.(jpg|jpeg|png|webp)$/;
+  /^(private\/tutor-verification\/([A-Za-z0-9_-]{1,191})\/([A-Za-z0-9_-]+)\.(jpg|jpeg|png|webp)|private\/payment-qrcodes\/(platform|tutor)\/([A-Za-z0-9_-]{1,191})\/(WECHAT|ALIPAY)\/([A-Za-z0-9_-]+)\.(jpg|jpeg|png|webp))$/;
 
 export type CloudBaseStorageClient = {
   uploadFile(input: { cloudPath: string; fileContent: Buffer }): Promise<{ fileID: string }>;
@@ -53,6 +54,43 @@ export function buildCloudVerificationPath(
   return `private/tutor-verification/${tutorProfileId}/${generatedId}.${extension}`;
 }
 
+export function buildCloudPaymentQrPath(
+  scope: {
+    ownerType: "platform" | "tutor";
+    ownerId: string;
+    qrType: "WECHAT" | "ALIPAY";
+  },
+  extension: SavePrivateFileInput["extension"],
+  uuid: () => string = randomUUID,
+) {
+  if (!PAYMENT_QR_OWNER_ID_PATTERN.test(scope.ownerId)) {
+    throw new Error("Invalid payment QR storage scope");
+  }
+  const generatedId = uuid();
+  if (!/^[A-Za-z0-9_-]+$/.test(generatedId)) {
+    throw new Error("Invalid generated storage identifier");
+  }
+  return `private/payment-qrcodes/${scope.ownerType}/${scope.ownerId}/${scope.qrType}/${generatedId}.${extension}`;
+}
+
+function buildCloudPath(
+  input: SavePrivateFileInput,
+  uuid: () => string = randomUUID,
+) {
+  if (input.scope?.kind === "payment-qr") {
+    return buildCloudPaymentQrPath(input.scope, input.extension, uuid);
+  }
+
+  const tutorProfileId =
+    input.scope?.kind === "tutor-verification"
+      ? input.scope.tutorProfileId
+      : input.tutorProfileId;
+  if (!tutorProfileId) {
+    throw new Error("Invalid tutor profile storage scope");
+  }
+  return buildCloudVerificationPath(tutorProfileId, input.extension, uuid);
+}
+
 export function parseCloudStorageKey(storageKey: string) {
   let parsed: URL;
   try {
@@ -80,11 +118,7 @@ export function createCloudBasePrivateFileStorage(options: {
   const { client, uuid = randomUUID } = options;
   return {
     async save(input) {
-      const cloudPath = buildCloudVerificationPath(
-        input.tutorProfileId,
-        input.extension,
-        uuid,
-      );
+      const cloudPath = buildCloudPath(input, uuid);
       try {
         const result = await client.uploadFile({
           cloudPath,

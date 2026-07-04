@@ -47,6 +47,9 @@ enum DemandStatus {
 enum OrderStatus {
   PENDING_TUTOR_CONFIRM
   PENDING_PAYMENT
+  WAIT_PLATFORM_CONFIRM
+  WAIT_TUTOR_PAYMENT
+  WAIT_TUTOR_CONFIRM
   ESCROWED
   IN_PROGRESS
   PENDING_PARENT_CONFIRM
@@ -73,6 +76,11 @@ enum SettlementProvider {
   MOCK
 }
 
+enum PaymentQrType {
+  WECHAT
+  ALIPAY
+}
+
 enum TeachMode {
   ONLINE
   OFFLINE
@@ -97,23 +105,24 @@ model User {
   termsAcceptedAt   DateTime?
   privacyAcceptedAt DateTime?
 
-  parentProfile          ParentProfile?
-  tutorProfile           TutorProfile?
-  demands                Demand[]                    @relation("ParentDemands")
-  parentOrders           Order[]                     @relation("ParentOrders")
-  tutorOrders            Order[]                     @relation("TutorOrders")
-  refundRequests         Refund[]                    @relation("RefundApplicants")
-  lessonFeedbacks        LessonFeedback[]            @relation("TutorLessonFeedbacks")
-  parentReviews          Review[]                    @relation("ParentReviews")
-  tutorReviews           Review[]                    @relation("TutorReviews")
-  tutorSettlements       Settlement[]                @relation("TutorSettlements")
-  notifications          Notification[]
-  reviewedTutorDocuments TutorVerificationDocument[] @relation("ReviewedTutorDocuments")
-  parentConversations    Conversation[]              @relation("ParentConversations")
-  tutorConversations     Conversation[]              @relation("TutorConversations")
-  sentMessages           Message[]                   @relation("SentMessages")
-  supportConversation    SupportConversation?
-  supportMessages        SupportMessage[]            @relation("SupportMessages")
+  parentProfile           ParentProfile?
+  tutorProfile            TutorProfile?
+  demands                 Demand[]                    @relation("ParentDemands")
+  parentOrders            Order[]                     @relation("ParentOrders")
+  tutorOrders             Order[]                     @relation("TutorOrders")
+  refundRequests          Refund[]                    @relation("RefundApplicants")
+  lessonFeedbacks         LessonFeedback[]            @relation("TutorLessonFeedbacks")
+  parentReviews           Review[]                    @relation("ParentReviews")
+  tutorReviews            Review[]                    @relation("TutorReviews")
+  tutorSettlements        Settlement[]                @relation("TutorSettlements")
+  notifications           Notification[]
+  reviewedTutorDocuments  TutorVerificationDocument[] @relation("ReviewedTutorDocuments")
+  parentConversations     Conversation[]              @relation("ParentConversations")
+  tutorConversations      Conversation[]              @relation("TutorConversations")
+  sentMessages            Message[]                   @relation("SentMessages")
+  supportConversation     SupportConversation?
+  supportMessages         SupportMessage[]            @relation("SupportMessages")
+  reviewedPlatformQrCodes PlatformPaymentQrCode[]     @relation("ReviewedPlatformPaymentQrCodes")
 }
 
 model ParentProfile {
@@ -153,6 +162,41 @@ model TutorProfile {
 
   user                  User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
   verificationDocuments TutorVerificationDocument[]
+  paymentQrCodes        TutorPaymentQrCode[]
+}
+
+model PlatformPaymentQrCode {
+  id           String        @id @default(cuid())
+  type         PaymentQrType @unique
+  storageKey   String        @unique @db.VarChar(512)
+  originalName String        @db.VarChar(255)
+  mimeType     String        @db.VarChar(191)
+  sizeBytes    Int
+  updatedById  String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  updatedBy User? @relation("ReviewedPlatformPaymentQrCodes", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([updatedById])
+}
+
+model TutorPaymentQrCode {
+  id             String        @id @default(cuid())
+  tutorProfileId String
+  type           PaymentQrType
+  storageKey     String        @unique @db.VarChar(512)
+  originalName   String        @db.VarChar(255)
+  mimeType       String        @db.VarChar(191)
+  sizeBytes      Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tutorProfile TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([tutorProfileId, type])
+  @@index([tutorProfileId])
+  @@index([type])
 }
 
 model TutorVerificationDocument {
@@ -195,8 +239,8 @@ model Demand {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  parent User    @relation("ParentDemands", fields: [parentId], references: [id], onDelete: Cascade)
-  orders Order[]
+  parent        User           @relation("ParentDemands", fields: [parentId], references: [id], onDelete: Cascade)
+  orders        Order[]
   conversations Conversation[]
 
   @@index([parentId])
@@ -265,15 +309,21 @@ model Settlement {
 }
 
 model Payment {
-  id            String    @id @default(cuid())
-  orderId       String    @unique
-  amount        Int
-  provider      String    @default("MOCK") @db.VarChar(64)
-  status        String    @default("UNPAID") @db.VarChar(64)
-  transactionNo String?   @db.VarChar(255)
-  paidAt        DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  orderId               String    @unique
+  amount                Int
+  provider              String    @default("MOCK") @db.VarChar(64)
+  status                String    @default("UNPAID") @db.VarChar(64)
+  platformAmountFen     Int       @default(0)
+  tutorAmountFen        Int       @default(0)
+  platformConfirmedAt   DateTime?
+  platformConfirmedById String?
+  tutorPaymentMarkedAt  DateTime?
+  tutorConfirmedAt      DateTime?
+  transactionNo         String?   @db.VarChar(255)
+  paidAt                DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
@@ -397,11 +447,11 @@ model Message {
 }
 
 model SupportConversation {
-  id            String   @id @default(cuid())
-  userId        String   @unique
+  id            String    @id @default(cuid())
+  userId        String    @unique
   lastMessageAt DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages SupportMessage[]

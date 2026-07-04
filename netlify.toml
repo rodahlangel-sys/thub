@@ -1,0 +1,42 @@
+# Netlify 部署配置 - 武汉高校家教平台
+# 官方文档: https://docs.netlify.com/integrations/frameworks/next-js/overview/
+
+[build]
+  # Netlify 使用专门的 build:netlify 命令，绕过本地 CloudBase 启动器
+  # 1. prisma generate 生成 Prisma Client（含 Linux binary target）
+  # 2. next build 由 Netlify Next Runtime 接管 App Router / Server Actions / Route Handlers
+  command = "npm run build:netlify"
+  publish = ".next"
+
+  # 明确告诉 Netlify 使用项目自带的 Node 版本（package.json engines 或 .nvmrc）
+  # 如需固定版本，可在此处指定，例如 "20"
+  # [build.environment]
+  # NODE_VERSION = "20"
+
+# Next.js Runtime v5 官方插件，自动注入 App Router / SSR / Server Action / API Route 支持
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# 生产环境必须提供的环境变量（值在 Netlify 后台配置，不在此文件中写死）
+# 列表仅用于文档说明，Netlify 会自动从后台读取：
+# - DATABASE_URL          MySQL 连接字符串
+# - AUTH_SECRET           JWT 签名密钥
+# - STORAGE_PROVIDER      CLOUDBASE
+# - CLOUDBASE_ENV_ID      CloudBase 环境 ID
+# - CLOUDBASE_REGION      CloudBase 地域
+# - CLOUDBASE_API_KEY     CloudBase API Key
+# - PAYMENT_PROVIDER      QRCODE
+# - PAYMENT_ENABLE_REAL_PROVIDER  false
+# - PAYMENT_NOTIFY_BASE_URL       站点域名
+
+# 静态资源长期缓存（.next/static 与 public）
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Server Actions 与 API 路由不走 CDN 缓存
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store"

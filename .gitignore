@@ -29,6 +29,9 @@
 *.pem
 .data/
 
+# UI 参考代码包（仅本地参考，不入仓库）
+/UIshouyesheji/
+
 # debug
 *.log
 npm-debug.log*

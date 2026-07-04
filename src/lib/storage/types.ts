@@ -3,11 +3,31 @@ export type StoredFile = {
   buffer: Buffer;
 };
 
+export type PaymentQrStorageScope = {
+  kind: "payment-qr";
+  ownerType: "platform" | "tutor";
+  ownerId: string;
+  qrType: "WECHAT" | "ALIPAY";
+};
+
+export type TutorVerificationStorageScope = {
+  kind: "tutor-verification";
+  tutorProfileId: string;
+};
+
 export type SavePrivateFileInput = {
   buffer: Buffer;
   extension: "jpg" | "jpeg" | "png" | "webp";
-  tutorProfileId: string;
-};
+} & (
+  | {
+      tutorProfileId: string;
+      scope?: TutorVerificationStorageScope;
+    }
+  | {
+      tutorProfileId?: string;
+      scope: PaymentQrStorageScope;
+    }
+);
 
 export type PrivateFileStorage = {
   save(input: SavePrivateFileInput): Promise<string>;

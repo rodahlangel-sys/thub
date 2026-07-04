@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import {
+  buildCloudPaymentQrPath,
   buildCloudVerificationPath,
   createCloudBasePrivateFileStorage,
   parseCloudStorageKey,
@@ -40,11 +41,36 @@ test("CloudBase paths never include user filenames or identity data", () => {
   assert.throws(() => buildCloudVerificationPath("../profile", "png"));
 });
 
-test("cloud storage keys accept only the private verification namespace", () => {
+test("CloudBase payment QR paths use the private payment namespace", () => {
+  assert.equal(
+    buildCloudPaymentQrPath(
+      { ownerType: "tutor", ownerId: "profile_123", qrType: "WECHAT" },
+      "png",
+      () => "uuid-789",
+    ),
+    "private/payment-qrcodes/tutor/profile_123/WECHAT/uuid-789.png",
+  );
+  assert.equal(
+    buildCloudPaymentQrPath(
+      { ownerType: "platform", ownerId: "default", qrType: "ALIPAY" },
+      "jpg",
+      () => "uuid-000",
+    ),
+    "private/payment-qrcodes/platform/default/ALIPAY/uuid-000.jpg",
+  );
+});
+
+test("cloud storage keys accept only supported private namespaces", () => {
   const key =
     "cloud://thub-test.bucket/private/tutor-verification/profile_123/uuid-456.png";
   assert.equal(parseCloudStorageKey(key).cloudPath,
     "private/tutor-verification/profile_123/uuid-456.png");
+  assert.equal(
+    parseCloudStorageKey(
+      "cloud://thub-test.bucket/private/payment-qrcodes/tutor/profile_123/WECHAT/uuid-456.png",
+    ).cloudPath,
+    "private/payment-qrcodes/tutor/profile_123/WECHAT/uuid-456.png",
+  );
   assert.throws(() => parseCloudStorageKey("cloud://thub-test.bucket/public/file.png"));
   assert.throws(() => parseCloudStorageKey("https://example.invalid/file.png"));
 });

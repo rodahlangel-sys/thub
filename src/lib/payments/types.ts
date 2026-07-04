@@ -1,4 +1,4 @@
-export type PaymentProviderName = "MOCK" | "ALIPAY" | "WECHAT";
+export type PaymentProviderName = "MOCK" | "QRCODE" | "ALIPAY" | "WECHAT";
 
 export type CreatePaymentInput = {
   id: string;
@@ -21,7 +21,7 @@ export type CreatePaymentResult = {
   raw?: unknown;
   message?: string;
   amount?: number;
-  status?: "UNPAID" | "PAID";
+  status?: "UNPAID" | "WAIT_PLATFORM_CONFIRM" | "WAIT_TUTOR_PAYMENT" | "WAIT_TUTOR_CONFIRM" | "PAID";
   paidAt?: Date;
 };
 

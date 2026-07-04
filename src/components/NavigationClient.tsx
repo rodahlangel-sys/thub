@@ -45,6 +45,7 @@ const navConfig: Record<UserRole, NavItem[]> = {
   TUTOR: [
     { href: "/tutor", label: "服务首页", exact: true },
     { href: "/tutor/orders", label: "预约管理", matchPrefixes: ["/tutor/orders"] },
+    { href: "/tutor/payments", label: "收款确认", matchPrefixes: ["/tutor/payments"] },
     { href: "/tutor/profile", label: "我的资料", matchPrefixes: ["/tutor/profile"] },
     { href: "/tutor/reviews", label: "服务评价", matchPrefixes: ["/tutor/reviews"] },
     { href: "/messages", label: "消息", matchPrefixes: ["/messages"] },

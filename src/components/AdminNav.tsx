@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 const adminLinks = [
   { href: "/admin", label: "后台首页" },
@@ -7,7 +7,9 @@ const adminLinks = [
   { href: "/admin/demands", label: "需求管理" },
   { href: "/admin/orders", label: "订单管理" },
   { href: "/admin/payments", label: "支付记录" },
+  { href: "/admin/payments/qrcode", label: "待确认平台收款" },
   { href: "/admin/payment-settings", label: "支付配置" },
+  { href: "/admin/payment-qrcodes", label: "收款码管理" },
   { href: "/admin/refunds", label: "退款管理" },
   { href: "/admin/reviews", label: "评价管理" },
   { href: "/admin/feedbacks", label: "课后反馈" },

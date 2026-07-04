@@ -78,6 +78,9 @@ export function getParentOrderStatusLabel(status: OrderStatus) {
   const labels: Record<OrderStatus, string> = {
     PENDING_TUTOR_CONFIRM: "等待老师确认",
     PENDING_PAYMENT: "待付款",
+    WAIT_PLATFORM_CONFIRM: "等待平台确认收款",
+    WAIT_TUTOR_PAYMENT: "待支付家教费用",
+    WAIT_TUTOR_CONFIRM: "等待家教确认收款",
     ESCROWED: "已确认安排",
     IN_PROGRESS: "辅导进行中",
     PENDING_PARENT_CONFIRM: "待确认完成",
@@ -91,8 +94,15 @@ export function getParentOrderStatusLabel(status: OrderStatus) {
 }
 
 export function getParentOrderStatusTone(status: OrderStatus) {
-  if (status === "PENDING_PAYMENT") return "blue" as const;
-  if (status === "PENDING_TUTOR_CONFIRM" || status === "PENDING_PARENT_CONFIRM") {
+  if (status === "PENDING_PAYMENT" || status === "WAIT_TUTOR_PAYMENT") {
+    return "blue" as const;
+  }
+  if (
+    status === "PENDING_TUTOR_CONFIRM" ||
+    status === "PENDING_PARENT_CONFIRM" ||
+    status === "WAIT_PLATFORM_CONFIRM" ||
+    status === "WAIT_TUTOR_CONFIRM"
+  ) {
     return "yellow" as const;
   }
   if (status === "REFUND_REQUESTED" || status === "REFUNDED") return "red" as const;
@@ -106,6 +116,9 @@ export function getParentOrderGroup(status: OrderStatus): ParentOrderGroup {
   if (
     status === "PENDING_TUTOR_CONFIRM" ||
     status === "PENDING_PAYMENT" ||
+    status === "WAIT_PLATFORM_CONFIRM" ||
+    status === "WAIT_TUTOR_PAYMENT" ||
+    status === "WAIT_TUTOR_CONFIRM" ||
     status === "PENDING_PARENT_CONFIRM" ||
     status === "REFUND_REQUESTED"
   ) {
@@ -123,6 +136,9 @@ export function getParentOrderStatusHint(status: OrderStatus) {
   const hints: Record<OrderStatus, string> = {
     PENDING_TUTOR_CONFIRM: "预约已提交，请等待老师确认。",
     PENDING_PAYMENT: "老师已确认接单，请完成担保支付。",
+    WAIT_PLATFORM_CONFIRM: "已标记支付平台信息服务费，等待管理员确认收款。",
+    WAIT_TUTOR_PAYMENT: "平台信息服务费已确认，请向家教支付服务费。",
+    WAIT_TUTOR_CONFIRM: "已标记支付家教服务费，等待家教确认收款。",
     ESCROWED: "费用已进入担保状态，请按约定时间上课。",
     IN_PROGRESS: "老师已开始服务，课后会提交反馈。",
     PENDING_PARENT_CONFIRM: "老师已提交课后反馈，请查看并确认。",
@@ -138,6 +154,14 @@ export function getParentOrderStatusHint(status: OrderStatus) {
 export function getParentOrderAction(status: OrderStatus, orderId: string, hasReview?: boolean) {
   if (status === "PENDING_PAYMENT") {
     return { label: "去付款", href: `/parent/orders/${orderId}/pay` };
+  }
+
+  if (
+    status === "WAIT_PLATFORM_CONFIRM" ||
+    status === "WAIT_TUTOR_PAYMENT" ||
+    status === "WAIT_TUTOR_CONFIRM"
+  ) {
+    return { label: "查看支付进度", href: `/parent/orders/${orderId}/pay` };
   }
 
   if (status === "PENDING_PARENT_CONFIRM") {

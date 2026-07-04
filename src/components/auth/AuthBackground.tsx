@@ -6,19 +6,52 @@ type AuthBackgroundProps = {
 
 export function AuthBackground({ children }: AuthBackgroundProps) {
   return (
-    <main className="fixed inset-0 z-50 overflow-y-auto bg-[#f4f8f6] text-[#132d2d]">
+    <main className="relative min-h-screen overflow-hidden bg-[#0d3b3b] text-[#1a2e2e]">
+      <div
+        className="absolute inset-0 bg-cover bg-center opacity-[0.48]"
+        style={{ backgroundImage: "url('/bg-mountain.png')" }}
+      />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(160deg, rgba(26,115,115,0.14) 0%, rgba(26,115,115,0.09) 40%, rgba(26,115,115,0.04) 70%, rgba(18,80,80,0.12) 100%)",
+        }}
+      />
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-1/2 top-1/2 h-[680px] w-[680px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#2b8b8b]/10" />
-        <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#2b8b8b]/8" />
-        <div className="absolute left-[12%] top-[16%] h-52 w-52 rounded-full bg-[#2b8b8b]/10 blur-3xl" />
-        <div className="absolute bottom-[10%] right-[12%] h-60 w-60 rounded-full bg-[#cbe8e1]/45 blur-3xl" />
-        <div className="absolute left-[28%] top-[11%] size-1.5 rounded-full bg-[#2b8b8b]/20" />
-        <div className="absolute right-[23%] top-[28%] size-1 rounded-full bg-[#2b8b8b]/20" />
-        <div className="absolute bottom-[20%] left-[23%] size-2 rounded-full bg-[#2b8b8b]/15" />
-        <div className="absolute bottom-[8%] right-[8%] hidden size-12 rounded-full border border-[#2b8b8b]/8 md:block" />
+        <div
+          className="absolute h-[420px] w-[420px] rounded-full blur-[64px]"
+          style={{
+            top: "15%",
+            left: "60%",
+            background:
+              "radial-gradient(circle, rgba(26,115,115,0.10) 0%, transparent 70%)",
+            animation: "auth-drift-1 22s ease-in-out infinite",
+          }}
+        />
+        <div
+          className="absolute h-[340px] w-[340px] rounded-full blur-[64px]"
+          style={{
+            top: "55%",
+            left: "25%",
+            background:
+              "radial-gradient(circle, rgba(42,148,148,0.08) 0%, transparent 70%)",
+            animation: "auth-drift-2 18s ease-in-out infinite",
+          }}
+        />
+        <div
+          className="absolute h-[280px] w-[280px] rounded-full blur-[64px]"
+          style={{
+            top: "35%",
+            left: "10%",
+            background:
+              "radial-gradient(circle, rgba(26,115,115,0.06) 0%, transparent 70%)",
+            animation: "auth-drift-3 26s ease-in-out infinite",
+          }}
+        />
       </div>
 
-      <div className="relative flex min-h-full flex-col px-5 py-5 sm:px-8">
+      <div className="relative z-10 flex min-h-screen flex-col px-5 py-5 sm:px-8">
         {children}
       </div>
     </main>

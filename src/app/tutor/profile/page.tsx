@@ -7,6 +7,7 @@ import { Card } from "@/components/Card";
 import { TutorDocumentUploadForm } from "@/components/tutor/TutorDocumentUploadForm";
 import { PageShell } from "@/components/ui/PageShell";
 import { getCurrentUser } from "@/lib/auth";
+import { paymentQrTypeLabels, paymentQrTypes } from "@/lib/payment-qrcodes";
 import { prisma } from "@/lib/prisma";
 import { getDashboardPath } from "@/lib/roles";
 import { getTutorProfileCompleteness } from "@/lib/tutor-profile";
@@ -24,6 +25,10 @@ import {
   updateTutorProfileAction,
   uploadTutorDocumentAction,
 } from "./actions";
+import {
+  deleteTutorPaymentQrAction,
+  uploadTutorPaymentQrAction,
+} from "./payment-qr-actions";
 
 type TutorProfilePageProps = {
   searchParams?: Promise<{
@@ -155,6 +160,9 @@ export default async function TutorProfilePage({
         verificationDocuments: {
           orderBy: [{ type: "asc" }, { createdAt: "desc" }],
         },
+        paymentQrCodes: {
+          orderBy: { type: "asc" },
+        },
       },
     }),
   ]);
@@ -168,6 +176,7 @@ export default async function TutorProfilePage({
   const completeness = getTutorProfileCompleteness(profile);
   const schoolProof = documents.find((document) => isSchoolProofDocument(document));
   const optionalDocuments = documents.filter((document) => !isSchoolProofDocument(document));
+  const paymentQrByType = new Map(profile.paymentQrCodes.map((qr) => [qr.type, qr]));
   const remainingOptionalCount = Math.max(
     0,
     MAX_OPTIONAL_TUTOR_DOCUMENTS - optionalDocuments.length,
@@ -325,6 +334,77 @@ export default async function TutorProfilePage({
                 </div>
               ) : null}
             </section>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-[#172c2c]">收款二维码</h2>
+                <p className="mt-2 text-sm leading-6 text-[#60716c]">
+                  用于家长在平台确认信息服务费后，向你支付家教服务费。二维码仅在订单支付流程中受控展示。
+                </p>
+              </div>
+              <Badge tone={profile.paymentQrCodes.length > 0 ? "green" : "yellow"}>
+                {profile.paymentQrCodes.length > 0 ? "已配置" : "待配置"}
+              </Badge>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {paymentQrTypes.map((type) => {
+                const qr = paymentQrByType.get(type);
+                return (
+                  <div
+                    className="rounded-2xl border border-[#dbe7e4] bg-[#f8fbfa] p-4"
+                    key={type}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="font-semibold text-[#172c2c]">
+                        {paymentQrTypeLabels[type]}
+                      </h3>
+                      <Badge tone={qr ? "green" : "gray"}>
+                        {qr ? "已上传" : "未上传"}
+                      </Badge>
+                    </div>
+                    {qr ? (
+                      <div className="mt-4">
+                        <img
+                          alt={`${paymentQrTypeLabels[type]}预览`}
+                          className="h-56 w-full rounded-xl border border-[#e1ebe8] bg-white object-contain"
+                          src={`/api/payment-qrcodes/tutor/${profile.id}/${type}`}
+                        />
+                        <p className="mt-2 text-xs text-[#60716c]">
+                          {qr.originalName} · {formatTutorDocumentSize(qr.sizeBytes)}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    <form action={uploadTutorPaymentQrAction} className="mt-4 space-y-3">
+                      <input name="type" type="hidden" value={type} />
+                      <input
+                        accept="image/jpeg,image/png,image/webp"
+                        className="block w-full rounded-xl border border-[#cbd8dc] bg-white px-3 py-2 text-sm text-[#182f38]"
+                        name="qr"
+                        required
+                        type="file"
+                      />
+                      <Button type="submit">{qr ? "更换二维码" : "上传二维码"}</Button>
+                    </form>
+
+                    {qr ? (
+                      <form action={deleteTutorPaymentQrAction} className="mt-3">
+                        <input name="type" type="hidden" value={type} />
+                        <button
+                          className="text-sm font-semibold text-[#a33b3b] hover:text-[#842a2a]"
+                          type="submit"
+                        >
+                          删除二维码
+                        </button>
+                      </form>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
           </Card>
 
           <Card className="p-6">

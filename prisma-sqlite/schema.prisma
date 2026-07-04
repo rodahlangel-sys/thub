@@ -47,6 +47,9 @@ enum DemandStatus {
 enum OrderStatus {
   PENDING_TUTOR_CONFIRM
   PENDING_PAYMENT
+  WAIT_PLATFORM_CONFIRM
+  WAIT_TUTOR_PAYMENT
+  WAIT_TUTOR_CONFIRM
   ESCROWED
   IN_PROGRESS
   PENDING_PARENT_CONFIRM
@@ -71,6 +74,11 @@ enum SettlementStatus {
 
 enum SettlementProvider {
   MOCK
+}
+
+enum PaymentQrType {
+  WECHAT
+  ALIPAY
 }
 
 enum TeachMode {
@@ -114,6 +122,7 @@ model User {
   sentMessages           Message[]                   @relation("SentMessages")
   supportConversation    SupportConversation?
   supportMessages        SupportMessage[]            @relation("SupportMessages")
+  reviewedPlatformQrCodes PlatformPaymentQrCode[]     @relation("ReviewedPlatformPaymentQrCodes")
 }
 
 model ParentProfile {
@@ -153,6 +162,41 @@ model TutorProfile {
 
   user                  User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
   verificationDocuments TutorVerificationDocument[]
+  paymentQrCodes        TutorPaymentQrCode[]
+}
+
+model PlatformPaymentQrCode {
+  id           String        @id @default(cuid())
+  type         PaymentQrType @unique
+  storageKey   String        @unique
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  updatedById  String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  updatedBy User? @relation("ReviewedPlatformPaymentQrCodes", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([updatedById])
+}
+
+model TutorPaymentQrCode {
+  id             String        @id @default(cuid())
+  tutorProfileId String
+  type           PaymentQrType
+  storageKey     String        @unique
+  originalName   String
+  mimeType       String
+  sizeBytes      Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tutorProfile TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([tutorProfileId, type])
+  @@index([tutorProfileId])
+  @@index([type])
 }
 
 model TutorVerificationDocument {
@@ -270,6 +314,12 @@ model Payment {
   amount        Int
   provider      String    @default("MOCK")
   status        String    @default("UNPAID")
+  platformAmountFen Int    @default(0)
+  tutorAmountFen    Int    @default(0)
+  platformConfirmedAt DateTime?
+  platformConfirmedById String?
+  tutorPaymentMarkedAt DateTime?
+  tutorConfirmedAt DateTime?
   transactionNo String?
   paidAt        DateTime?
   createdAt     DateTime  @default(now())

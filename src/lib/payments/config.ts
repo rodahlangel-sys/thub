@@ -9,7 +9,12 @@ function readBooleanEnv(name: string) {
 }
 
 function normalizeProvider(value: string): PaymentProviderName {
-  if (value === "ALIPAY" || value === "WECHAT" || value === "MOCK") {
+  if (
+    value === "ALIPAY" ||
+    value === "WECHAT" ||
+    value === "QRCODE" ||
+    value === "MOCK"
+  ) {
     return value;
   }
 
@@ -85,6 +90,7 @@ export function getPaymentMethodAvailability() {
 
   return {
     mock: true,
+    qrcode: config.provider === "QRCODE",
     alipay:
       config.provider === "ALIPAY" &&
       config.enableRealProvider &&

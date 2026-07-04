@@ -32,6 +32,9 @@ export function getTutorOrderCategory(status: OrderStatus): TutorOrderCategory {
   if (
     status === "PENDING_TUTOR_CONFIRM" ||
     status === "PENDING_PAYMENT" ||
+    status === "WAIT_PLATFORM_CONFIRM" ||
+    status === "WAIT_TUTOR_PAYMENT" ||
+    status === "WAIT_TUTOR_CONFIRM" ||
     status === "REFUND_REQUESTED"
   ) {
     return "todo";
@@ -52,6 +55,9 @@ export function getTutorOrderStatusLabel(status: OrderStatus) {
   const labels: Record<OrderStatus, string> = {
     PENDING_TUTOR_CONFIRM: "新预约待确认",
     PENDING_PAYMENT: "等待家长付款",
+    WAIT_PLATFORM_CONFIRM: "等待平台确认收款",
+    WAIT_TUTOR_PAYMENT: "等待家长支付家教费",
+    WAIT_TUTOR_CONFIRM: "待确认收款",
     ESCROWED: "已安排待开始",
     IN_PROGRESS: "辅导进行中",
     PENDING_PARENT_CONFIRM: "等待家长确认",
@@ -71,6 +77,9 @@ export function getTutorOrderAction(status: OrderStatus) {
   > = {
     PENDING_TUTOR_CONFIRM: { label: "查看并确认", tone: "primary" },
     PENDING_PAYMENT: { label: "查看预约", tone: "outline" },
+    WAIT_PLATFORM_CONFIRM: { label: "查看预约", tone: "outline" },
+    WAIT_TUTOR_PAYMENT: { label: "查看预约", tone: "outline" },
+    WAIT_TUTOR_CONFIRM: { label: "确认收款", tone: "primary" },
     ESCROWED: { label: "查看辅导安排", tone: "primary" },
     IN_PROGRESS: { label: "提交课后反馈", tone: "primary" },
     PENDING_PARENT_CONFIRM: { label: "查看记录", tone: "outline" },

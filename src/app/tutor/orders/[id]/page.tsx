@@ -30,6 +30,9 @@ type TutorOrderDetailPageProps = {
 const statusTone: Record<OrderStatus, "blue" | "green" | "yellow" | "red" | "gray"> = {
   PENDING_TUTOR_CONFIRM: "yellow",
   PENDING_PAYMENT: "blue",
+  WAIT_PLATFORM_CONFIRM: "yellow",
+  WAIT_TUTOR_PAYMENT: "yellow",
+  WAIT_TUTOR_CONFIRM: "blue",
   ESCROWED: "green",
   IN_PROGRESS: "blue",
   PENDING_PARENT_CONFIRM: "yellow",
@@ -105,12 +108,16 @@ function getOrderStage(status: OrderStatus) {
 function getPaymentStatusLabel(status: string) {
   if (status === "PAID") return "已支付";
   if (status === "REFUNDED") return "已退款";
+  if (status === "WAIT_PLATFORM_CONFIRM") return "待确认平台收款";
+  if (status === "WAIT_TUTOR_PAYMENT") return "待支付家教费用";
+  if (status === "WAIT_TUTOR_CONFIRM") return "待家教确认收款";
   return "未支付";
 }
 
 function getPaymentProviderLabel(provider: string) {
   if (provider === "ALIPAY") return "支付宝";
   if (provider === "WECHAT") return "微信支付";
+  if (provider === "QRCODE") return "扫码支付";
   return "模拟支付";
 }
 

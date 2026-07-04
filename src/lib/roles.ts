@@ -61,6 +61,9 @@ export function getOrderStatusLabel(status: OrderStatus) {
   const labels: Record<OrderStatus, string> = {
     PENDING_TUTOR_CONFIRM: "待老师确认",
     PENDING_PAYMENT: "待家长支付",
+    WAIT_PLATFORM_CONFIRM: "待确认平台收款",
+    WAIT_TUTOR_PAYMENT: "待支付家教费用",
+    WAIT_TUTOR_CONFIRM: "待家教确认收款",
     ESCROWED: "已担保",
     IN_PROGRESS: "服务中",
     PENDING_PARENT_CONFIRM: "待家长确认",
@@ -96,6 +99,9 @@ export function getTeachModeLabel(mode: TeachMode) {
 export function getPaymentStatusLabel(status: string) {
   const labels: Record<string, string> = {
     UNPAID: "未支付",
+    WAIT_PLATFORM_CONFIRM: "待确认平台收款",
+    WAIT_TUTOR_PAYMENT: "待支付家教费用",
+    WAIT_TUTOR_CONFIRM: "待家教确认收款",
     PAID: "已支付",
     REFUNDED: "已退款",
   };
@@ -106,6 +112,7 @@ export function getPaymentStatusLabel(status: string) {
 export function getPaymentProviderLabel(provider: string) {
   const labels: Record<string, string> = {
     MOCK: "模拟支付",
+    QRCODE: "扫码支付",
     ALIPAY: "支付宝",
     WECHAT: "微信支付",
   };

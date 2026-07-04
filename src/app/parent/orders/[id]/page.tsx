@@ -34,6 +34,9 @@ function getTopTitle(status: OrderStatus) {
   const titles: Record<OrderStatus, string> = {
     PENDING_TUTOR_CONFIRM: "预约已提交，等待老师确认",
     PENDING_PAYMENT: "老师已确认，请完成付款",
+    WAIT_PLATFORM_CONFIRM: "等待平台确认收款",
+    WAIT_TUTOR_PAYMENT: "请向家教支付服务费",
+    WAIT_TUTOR_CONFIRM: "等待家教确认收款",
     ESCROWED: "辅导安排已确认",
     IN_PROGRESS: "本次辅导进行中",
     PENDING_PARENT_CONFIRM: "老师已提交课后反馈",
@@ -49,6 +52,9 @@ function getTopTitle(status: OrderStatus) {
 function getPaymentStatusLabel(status: string) {
   const labels: Record<string, string> = {
     UNPAID: "未支付",
+    WAIT_PLATFORM_CONFIRM: "待确认平台收款",
+    WAIT_TUTOR_PAYMENT: "待支付家教费用",
+    WAIT_TUTOR_CONFIRM: "待家教确认收款",
     PAID: "已支付",
     REFUNDED: "已退款",
   };

@@ -24,14 +24,14 @@ export function PasswordField({ className }: PasswordFieldProps) {
       />
       <button
         aria-label={visible ? "隐藏密码" : "显示密码"}
-        className="absolute right-3 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-[#6f8582] transition hover:bg-[#edf5f2] hover:text-[#117b7a] focus:outline-none focus:ring-2 focus:ring-[#b9deda]"
+        className="absolute right-3 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-[#8fa5a5] transition hover:bg-white/40 hover:text-[#1a7373] focus:outline-none"
         onClick={() => setVisible((value) => !value)}
         type="button"
       >
         {visible ? (
-          <EyeOff className="size-4" aria-hidden />
+          <EyeOff className="size-[17px]" aria-hidden />
         ) : (
-          <Eye className="size-4" aria-hidden />
+          <Eye className="size-[17px]" aria-hidden />
         )}
       </button>
     </div>
